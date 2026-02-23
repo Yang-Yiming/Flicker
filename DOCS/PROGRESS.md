@@ -1,6 +1,6 @@
 # Flicker Progress
 
-## Current Phase: Phase 3 (iOS Basic) ✓
+## Current Phase: Phase 4 (iOS Voice) ✓
 
 ### Completed
 

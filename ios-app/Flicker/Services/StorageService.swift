@@ -11,6 +11,18 @@ class StorageService: ObservableObject {
             .appendingPathComponent("Documents/flickers")
     }
 
+    func audioURL(for id: String) -> URL? {
+        FileManager.default
+            .url(forUbiquityContainerIdentifier: "iCloud.com.flicker.app")?
+            .appendingPathComponent("Documents/audio/\(id).m4a")
+    }
+
+    func deleteAudio(id: String) throws {
+        guard let url = audioURL(for: id),
+              FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
+    }
+
     func load() {
         guard let dir = flickersURL else { return }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

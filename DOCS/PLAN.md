@@ -40,10 +40,10 @@ Goal: SwiftUI app with iCloud read/write.
 
 Goal: Voice-to-text input on iOS.
 
-- [ ] `SpeechService.swift` — Speech framework integration
-- [ ] AVAudioEngine recording + real-time transcription
-- [ ] Save audio as `audio/{id}.m4a`, link in frontmatter
-- [ ] UI: record button in NewFlickerView
+- [x] `SpeechService.swift` — Speech framework integration
+- [x] AVAudioEngine recording + real-time transcription
+- [x] Save audio as `audio/{id}.m4a`, link in frontmatter
+- [x] UI: record button in NewFlickerView
 
 ## Phase 5: Polish
 

@@ -44,11 +44,11 @@ struct Flicker: Identifiable {
         self.createdAt = fm["created_at"].flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
     }
 
-    init(id: String, body: String) {
+    init(id: String, body: String, audioFile: String? = nil) {
         self.id = id
         self.createdAt = Date()
         self.source = "ios"
-        self.audioFile = nil
+        self.audioFile = audioFile
         self.status = .inbox
         self.body = body
     }

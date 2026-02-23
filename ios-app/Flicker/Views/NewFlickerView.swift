@@ -3,27 +3,58 @@ import SwiftUI
 struct NewFlickerView: View {
     let storage: StorageService
     @State private var text = ""
+    @StateObject private var speech = SpeechService()
+    @State private var hasAudio = false
+    @State private var flickerID = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8).lowercased())
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            TextEditor(text: $text)
-                .padding()
-                .navigationTitle("New Flicker")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            let id = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(8).lowercased()
-                            try? storage.save(Flicker(id: String(id), body: text))
-                            dismiss()
-                        }
-                        .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            VStack(spacing: 0) {
+                TextEditor(text: $text)
+                    .padding()
+                Button { toggleRecording() } label: {
+                    Image(systemName: speech.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                        .font(.system(size: 52))
+                        .foregroundStyle(speech.isRecording ? .red : .accentColor)
+                }
+                .padding(.bottom, 24)
+            }
+            .navigationTitle("New Flicker")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        if hasAudio { try? storage.deleteAudio(id: flickerID) }
+                        dismiss()
                     }
                 }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let audioFile = hasAudio ? "audio/\(flickerID).m4a" : nil
+                        try? storage.save(Flicker(id: flickerID, body: text, audioFile: audioFile))
+                        dismiss()
+                    }
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .onChange(of: speech.transcript) { _, new in text = new }
+        }
+    }
+
+    private func toggleRecording() {
+        if speech.isRecording {
+            speech.stopRecording()
+        } else {
+            speech.requestPermission { granted in
+                guard granted, let url = storage.audioURL(for: flickerID) else { return }
+                try? FileManager.default.createDirectory(
+                    at: url.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try? speech.startRecording(audioURL: url)
+                hasAudio = true
+            }
         }
     }
 }
