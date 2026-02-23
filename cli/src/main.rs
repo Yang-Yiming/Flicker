@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 mod commands;
 mod model;
 mod storage;
+mod tui;
 
 #[derive(Parser)]
 #[command(name = "flicker", about = "Lightweight idea recorder")]
@@ -30,6 +31,6 @@ fn main() {
         Some(Commands::Delete { id }) => commands::delete::run(&id),
         Some(Commands::Search { query }) => commands::search::run(&query),
         Some(Commands::Status) => commands::status::run(),
-        None => println!("TUI coming in Phase 2"),
+        None => tui::run().unwrap(),
     }
 }

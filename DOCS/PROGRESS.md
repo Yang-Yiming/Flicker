@@ -1,6 +1,6 @@
 # Flicker Progress
 
-## Current Phase: Phase 1 (CLI Core) ✓
+## Current Phase: Phase 2 (TUI) ✓
 
 ### Completed
 
@@ -18,7 +18,12 @@
 - [x] `commands/delete.rs` — soft delete (sets status to deleted)
 - [x] `commands/search.rs` — case-insensitive full-text search
 - [x] `commands/status.rs` — counts by status + conflict file reporting
+- [x] ratatui + crossterm added to Cargo.toml
+- [x] `tui/state.rs` — App struct, Mode enum (List/Detail/Search/Add), filter/sort/mutate methods
+- [x] `tui/ui.rs` — status tabs, flicker list, detail pane, input overlay
+- [x] `tui/mod.rs` — event loop, keybindings (q/a/d/s/Tab/Enter/Esc/j/k//)
+- [x] `main.rs` — no-args launches TUI
 
 ### Next Up
 
-- Phase 2: TUI — ratatui interactive interface
+- Phase 3: iOS Basic
