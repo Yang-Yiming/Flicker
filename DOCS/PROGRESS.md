@@ -1,6 +1,6 @@
 # Flicker Progress
 
-## Current Phase: Phase 2 (TUI) ✓
+## Current Phase: Phase 3 (iOS Basic) ✓
 
 ### Completed
 
@@ -24,6 +24,14 @@
 - [x] `tui/mod.rs` — event loop, keybindings (q/a/d/s/Tab/Enter/Esc/j/k//)
 - [x] `main.rs` — no-args launches TUI
 
+- [x] `FlickerApp.swift` — app entry point
+- [x] `Models/Flicker.swift` — model with frontmatter parsing
+- [x] `Services/StorageService.swift` — iCloud file I/O, conflict detection
+- [x] `Views/FlickerListView.swift` — list with status filter chips
+- [x] `Views/FlickerDetailView.swift` — view/edit single flicker, status change, delete
+- [x] `Views/NewFlickerView.swift` — text input to create flicker
+
 ### Next Up
 
-- Phase 3: iOS Basic
+- Phase 4: iOS Voice
+- Create Xcode project: File → New → App, bundle ID `com.flicker.app`, add iCloud entitlement (`iCloud~com.flicker.app`), add all Swift files

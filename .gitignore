@@ -1,1 +1,5 @@
 cli/target/
+.DS_Store
+xcuserdata/
+*.xcuserstate
+

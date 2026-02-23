@@ -19,11 +19,11 @@ Goal: Basic file operations via subcommands.
 
 Goal: Interactive terminal UI with ratatui.
 
-- [ ] Add ratatui + crossterm dependencies
-- [ ] `tui/state.rs` — app state (list, detail, search, add modes)
-- [ ] `tui/ui.rs` — layout: status tabs, flicker list, detail pane
-- [ ] `tui/mod.rs` — event loop, keybindings
-- [ ] Keybindings: `/` search, `a` add, `d` delete, `s` cycle status, `q` quit
+- [x] Add ratatui + crossterm dependencies
+- [x] `tui/state.rs` — app state (list, detail, search, add modes)
+- [x] `tui/ui.rs` — layout: status tabs, flicker list, detail pane
+- [x] `tui/mod.rs` — event loop, keybindings
+- [x] Keybindings: `/` search, `a` add, `d` delete, `s` cycle status, `q` quit
 
 ## Phase 3: iOS Basic
 
