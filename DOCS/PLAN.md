@@ -1,23 +1,19 @@
 # Flicker Implementation Plan
 
-## Phase 1: CLI Core
+Flicker has two independent clients sharing the same iCloud file format. CLI and iOS app can be developed and shipped independently.
 
-Goal: Basic file operations via subcommands.
+---
+
+# CLI
+
+## Phase 1: CLI Core ✓
 
 - [x] Init Cargo project with clap, serde, serde_yaml
 - [x] `model.rs` — Flicker struct with frontmatter serde
 - [x] `storage.rs` — iCloud path resolution, read/write/list/delete
-- [x] Subcommands:
-  - [x] `add` — create new flicker with generated ID
-  - [x] `list` — list flickers, filter by `--status`
-  - [x] `show` — display single flicker by ID
-  - [x] `delete` — set status to deleted
-  - [x] `search` — full-text search across flickers
-  - [x] `status` — show counts by status, report conflicts
+- [x] Subcommands: `add`, `list`, `show`, `delete`, `search`, `status`
 
-## Phase 2: TUI
-
-Goal: Interactive terminal UI with ratatui.
+## Phase 2: TUI ✓
 
 - [x] Add ratatui + crossterm dependencies
 - [x] `tui/state.rs` — app state (list, detail, search, add modes)
@@ -25,30 +21,36 @@ Goal: Interactive terminal UI with ratatui.
 - [x] `tui/mod.rs` — event loop, keybindings
 - [x] Keybindings: `/` search, `a` add, `d` delete, `s` cycle status, `q` quit
 
-## Phase 3: iOS Basic
+## Phase 3: Polish
 
-Goal: SwiftUI app with iCloud read/write.
+- [ ] Error handling & edge cases
+- [ ] Colored output, better formatting
+- [ ] README with install instructions
+- [x] TUI command bar (`:` trigger, slash commands: add/delete/search)
+- [x] TUI command autocomplete (popup candidate list, ↓/Tab navigate, Enter execute)
 
-- [ ] Xcode project with iCloud entitlement (`iCloud~com.flicker.app`)
-- [ ] `Flicker.swift` — model with frontmatter parsing
-- [ ] `StorageService.swift` — iCloud file I/O, conflict detection
-- [ ] `FlickerListView` — list with status filter
-- [ ] `FlickerDetailView` — view/edit single flicker
-- [ ] `NewFlickerView` — text input to create flicker
+---
 
-## Phase 4: iOS Voice
+# iOS App
 
-Goal: Voice-to-text input on iOS.
+## Phase 1: iOS Basic ✓
+
+- [x] Xcode project with iCloud entitlement (`iCloud~com.flicker.app`)
+- [x] `Flicker.swift` — model with frontmatter parsing
+- [x] `StorageService.swift` — iCloud file I/O, conflict detection
+- [x] `FlickerListView` — list with status filter
+- [x] `FlickerDetailView` — view/edit single flicker
+- [x] `NewFlickerView` — text input to create flicker
+
+## Phase 2: Voice Input ✓
 
 - [x] `SpeechService.swift` — Speech framework integration
 - [x] AVAudioEngine recording + real-time transcription
 - [x] Save audio as `audio/{id}.m4a`, link in frontmatter
 - [x] UI: record button in NewFlickerView
 
-## Phase 5: Polish
+## Phase 3: Polish
 
+- [ ] Empty states, loading indicators
 - [ ] Error handling & edge cases
-- [ ] CLI: colored output, better formatting
-- [ ] iOS: empty states, loading indicators
 - [ ] Test on real iCloud sync between devices
-- [ ] README with install instructions

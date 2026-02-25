@@ -1,18 +1,19 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Tabs, Wrap},
 };
 use crate::model::Status;
-use super::state::{App, Mode};
+use super::state::{App, Mode, MAX_SUGGESTIONS};
 
 pub fn draw(f: &mut Frame, app: &App) {
     match app.mode {
         Mode::Detail => draw_detail(f, app),
         Mode::Add => draw_with_input(f, app, "Add (Enter to save, Esc to cancel): "),
         Mode::Search => draw_with_input(f, app, "Search: "),
+        Mode::Command => draw_with_command(f, app),
         Mode::List => draw_list(f, app),
     }
 }
@@ -61,7 +62,7 @@ fn draw_list(f: &mut Frame, app: &App) {
     f.render_stateful_widget(list, chunks[1], &mut state);
 
     f.render_widget(
-        Paragraph::new("q:quit  a:add  /:search  Enter:view  s:cycle  d:delete  Tab:filter  j/k:nav"),
+        Paragraph::new("q:quit  a:add  /:search  ::cmd  Enter:view  s:cycle  d:delete  Tab:filter  j/k:nav"),
         chunks[2],
     );
 }
@@ -108,6 +109,60 @@ fn draw_with_input(f: &mut Frame, app: &App, prompt: &str) {
     };
     f.render_widget(
         Paragraph::new(format!("{prompt}{input}"))
+            .block(Block::default().borders(Borders::ALL)),
+        chunks[2],
+    );
+}
+
+fn draw_with_command(f: &mut Frame, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0), Constraint::Length(3)])
+        .split(f.area());
+
+    f.render_widget(tabs_widget(app.tab), chunks[0]);
+
+    let items = list_items(app);
+    let mut state = ListState::default();
+    if !app.filtered.is_empty() { state.select(Some(app.selected)); }
+    let list = List::new(items)
+        .block(Block::default().borders(Borders::ALL))
+        .highlight_style(Style::default().bg(Color::DarkGray));
+    f.render_stateful_widget(list, chunks[1], &mut state);
+
+    // Suggestions popup — floats just above the command bar
+    if !app.suggestions.is_empty() {
+        let show = MAX_SUGGESTIONS.min(app.suggestions.len()) as u16;
+        let popup_h = show + 2;
+        let popup_w = 20u16;
+        let popup_y = chunks[2].y.saturating_sub(popup_h);
+        let popup_rect = Rect::new(chunks[1].x + 1, popup_y, popup_w, popup_h);
+
+        let suggestion_items: Vec<ListItem> = app.suggestions.iter()
+            .map(|&cmd| ListItem::new(format!(" {cmd}")))
+            .collect();
+        let mut sstate = ListState::default();
+        sstate.select(app.suggestion_idx);
+
+        f.render_widget(Clear, popup_rect);
+        f.render_stateful_widget(
+            List::new(suggestion_items)
+                .block(Block::default().borders(Borders::ALL))
+                .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
+                .highlight_symbol(">"),
+            popup_rect,
+            &mut sstate,
+        );
+    }
+
+    // Command input bar
+    let display = if let Some(ref msg) = app.status_message {
+        format!(" {msg}")
+    } else {
+        format!(":{}", app.command_input)
+    };
+    f.render_widget(
+        Paragraph::new(display)
             .block(Block::default().borders(Borders::ALL)),
         chunks[2],
     );

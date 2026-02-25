@@ -3,8 +3,8 @@ Flicker — lightweight app to record flickering ideas. Syncs via iCloud Drive b
 ## Docs
 
 - `DOCS/ARCHITECTURE.md` — architecture and tech details
-- `DOCS/PLAN.md` — phased implementation plan
-- `DOCS/PROGRESS.md` — current progress
+- `DOCS/PLAN.md` — implementation plan (CLI + iOS App)
+- `DOCS/PROGRESS.md` — current progress (CLI + iOS App)
 
 READ these files when you need context. UPDATE them when you make changes.
 

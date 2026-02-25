@@ -40,6 +40,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<
                 KeyCode::Char('q') => break,
                 KeyCode::Char('a') => app.mode = Mode::Add,
                 KeyCode::Char('/') => app.mode = Mode::Search,
+                KeyCode::Char(':') => app.enter_command(),
                 KeyCode::Char('d') => app.delete_selected(),
                 KeyCode::Char('s') => app.cycle_status_selected(),
                 KeyCode::Tab => app.cycle_tab(),
@@ -54,6 +55,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<
             },
             Mode::Detail => match key.code {
                 KeyCode::Esc | KeyCode::Char('q') => app.mode = Mode::List,
+                KeyCode::Char(':') => app.enter_command(),
                 KeyCode::Char('d') => { app.delete_selected(); app.mode = Mode::List; }
                 KeyCode::Char('s') => app.cycle_status_selected(),
                 _ => {}
@@ -82,7 +84,62 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<
                 KeyCode::Char(c) => app.add_input.push(c),
                 _ => {}
             },
+            Mode::Command => match key.code {
+                KeyCode::Esc => app.exit_command(),
+                KeyCode::Backspace => { app.command_input.pop(); app.update_suggestions(); }
+                KeyCode::Tab | KeyCode::Down => app.suggestion_next(),
+                KeyCode::Up => app.suggestion_prev(),
+                KeyCode::Enter => {
+                    // If a suggestion is highlighted and user hasn't typed args yet, accept it first
+                    if app.suggestion_idx.is_some() && !app.command_input.contains(' ') {
+                        app.accept_suggestion();
+                        // For commands that need args (add/search), stay in Command mode for input
+                        if app.command_input.ends_with(' ') {
+                            // don't dispatch yet
+                        } else {
+                            dispatch_command(&mut app);
+                            if app.mode == Mode::Command { app.exit_command(); }
+                        }
+                    } else {
+                        dispatch_command(&mut app);
+                        if app.mode == Mode::Command { app.exit_command(); }
+                    }
+                }
+                KeyCode::Char(c) => { app.command_input.push(c); app.update_suggestions(); }
+                _ => {}
+            },
         }
     }
     Ok(())
+}
+
+fn dispatch_command(app: &mut App) {
+    let input = app.command_input.trim().to_string();
+    let parts: Vec<&str> = input.splitn(2, ' ').collect();
+    match parts[0] {
+        "add" => {
+            let text = parts.get(1).unwrap_or(&"").trim().to_string();
+            if !text.is_empty() {
+                app.add_flicker(text);
+                app.status_message = None;
+            } else {
+                app.status_message = Some("usage: add <text>".to_string());
+            }
+        }
+        "delete" => {
+            app.delete_selected();
+        }
+        "search" => {
+            let query = parts.get(1).unwrap_or(&"").trim().to_string();
+            app.search_query = query;
+            app.refilter();
+            app.mode = Mode::Search;
+            return; // don't call exit_command — stay in Search mode
+        }
+        "" => {}
+        _ => {
+            app.status_message = Some(format!("unknown command: {}", parts[0]));
+        }
+    }
+    app.refilter();
 }
