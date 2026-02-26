@@ -14,6 +14,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Mode::Add => draw_with_input(f, app, "Add (Enter to save, Esc to cancel): "),
         Mode::Search => draw_with_input(f, app, "Search: "),
         Mode::Command => draw_with_command(f, app),
+        Mode::Bash => draw_with_bash(f, app),
         Mode::List => draw_list(f, app),
     }
 }
@@ -62,7 +63,7 @@ fn draw_list(f: &mut Frame, app: &App) {
     f.render_stateful_widget(list, chunks[1], &mut state);
 
     f.render_widget(
-        Paragraph::new("q:quit  a:add  /:search  ::cmd  Enter:view  s:cycle  d:delete  Tab:filter  j/k:nav"),
+        Paragraph::new("q:quit  a:add  /:search  ::cmd  !:bash  v:vim  Enter:view  s:cycle  d:delete  Tab:filter  j/k:nav"),
         chunks[2],
     );
 }
@@ -139,7 +140,7 @@ fn draw_with_command(f: &mut Frame, app: &App) {
         let popup_rect = Rect::new(chunks[1].x + 1, popup_y, popup_w, popup_h);
 
         let suggestion_items: Vec<ListItem> = app.suggestions.iter()
-            .map(|&cmd| ListItem::new(format!(" {cmd}")))
+            .map(|cmd| ListItem::new(format!(" {cmd}")))
             .collect();
         let mut sstate = ListState::default();
         sstate.select(app.suggestion_idx);
@@ -163,6 +164,29 @@ fn draw_with_command(f: &mut Frame, app: &App) {
     };
     f.render_widget(
         Paragraph::new(display)
+            .block(Block::default().borders(Borders::ALL)),
+        chunks[2],
+    );
+}
+
+fn draw_with_bash(f: &mut Frame, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0), Constraint::Length(3)])
+        .split(f.area());
+
+    f.render_widget(tabs_widget(app.tab), chunks[0]);
+
+    let items = list_items(app);
+    let mut state = ListState::default();
+    if !app.filtered.is_empty() { state.select(Some(app.selected)); }
+    let list = List::new(items)
+        .block(Block::default().borders(Borders::ALL))
+        .highlight_style(Style::default().bg(Color::DarkGray));
+    f.render_stateful_widget(list, chunks[1], &mut state);
+
+    f.render_widget(
+        Paragraph::new(format!("!{}", app.bash_input))
             .block(Block::default().borders(Borders::ALL)),
         chunks[2],
     );

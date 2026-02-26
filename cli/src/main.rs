@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 mod commands;
 mod model;
@@ -20,6 +20,8 @@ enum Commands {
     Delete { id: String },
     Search { query: String },
     Status,
+    Rename { id: String, body: String },
+    Bash { cmd: String },
 }
 
 fn main() {
@@ -31,6 +33,14 @@ fn main() {
         Some(Commands::Delete { id }) => commands::delete::run(&id),
         Some(Commands::Search { query }) => commands::search::run(&query),
         Some(Commands::Status) => commands::status::run(),
-        None => tui::run().unwrap(),
+        Some(Commands::Rename { id, body }) => commands::rename::run(&id, &body),
+        Some(Commands::Bash { cmd }) => commands::bash::run(&cmd),
+        None => {
+            let cmds: Vec<String> = Cli::command()
+                .get_subcommands()
+                .map(|s| s.get_name().to_string())
+                .collect();
+            tui::run(cmds).unwrap()
+        }
     }
 }

@@ -2,7 +2,6 @@ use chrono::Utc;
 use uuid::Uuid;
 use crate::model::{Flicker, Frontmatter, Status};
 
-pub const COMMANDS: &[&str] = &["add", "delete", "search"];
 pub const MAX_SUGGESTIONS: usize = 5;
 
 #[derive(Clone, Copy, PartialEq)]
@@ -12,6 +11,7 @@ pub enum Mode {
     Search,
     Add,
     Command,
+    Bash,
 }
 
 pub struct App {
@@ -19,18 +19,20 @@ pub struct App {
     pub flickers: Vec<Flicker>,
     pub filtered: Vec<usize>,
     pub selected: usize,
-    pub tab: usize, // 0=inbox 1=kept 2=archived 3=all
+    pub tab: usize,
     pub search_query: String,
     pub add_input: String,
     pub command_input: String,
+    pub bash_input: String,
     pub prev_mode: Mode,
     pub status_message: Option<String>,
-    pub suggestions: Vec<&'static str>,
+    pub commands: Vec<String>,
+    pub suggestions: Vec<String>,
     pub suggestion_idx: Option<usize>,
 }
 
 impl App {
-    pub fn new(flickers: Vec<Flicker>) -> Self {
+    pub fn new(flickers: Vec<Flicker>, commands: Vec<String>) -> Self {
         let mut app = App {
             mode: Mode::List,
             flickers,
@@ -40,8 +42,10 @@ impl App {
             search_query: String::new(),
             add_input: String::new(),
             command_input: String::new(),
+            bash_input: String::new(),
             prev_mode: Mode::List,
             status_message: None,
+            commands,
             suggestions: vec![],
             suggestion_idx: None,
         };
@@ -66,18 +70,15 @@ impl App {
 
     pub fn update_suggestions(&mut self) {
         let prefix = self.command_input.trim().to_lowercase();
-        // Only filter on the first word (command name), not args
-        let cmd_part: &str = prefix.splitn(2, ' ').next().unwrap_or("");
+        let cmd_part = prefix.splitn(2, ' ').next().unwrap_or("");
         self.suggestions = if prefix.contains(' ') {
-            // User is typing args — no suggestions
             vec![]
         } else {
-            COMMANDS.iter()
-                .copied()
-                .filter(|&c| c.starts_with(cmd_part))
+            self.commands.iter()
+                .filter(|c| c.starts_with(cmd_part))
+                .cloned()
                 .collect()
         };
-        // Reset idx if out of bounds
         if let Some(idx) = self.suggestion_idx {
             if idx >= self.suggestions.len() {
                 self.suggestion_idx = None;
@@ -102,11 +103,10 @@ impl App {
         });
     }
 
-    /// Fill the highlighted suggestion into command_input (adds trailing space for commands that take args).
     pub fn accept_suggestion(&mut self) {
         if let Some(idx) = self.suggestion_idx {
-            if let Some(&cmd) = self.suggestions.get(idx) {
-                self.command_input = cmd.to_string();
+            if let Some(cmd) = self.suggestions.get(idx).cloned() {
+                self.command_input = cmd.clone();
                 if cmd == "add" || cmd == "search" {
                     self.command_input.push(' ');
                 }
@@ -191,6 +191,11 @@ impl App {
         };
         crate::storage::write(&flicker).ok();
         self.flickers.push(flicker);
+        self.refilter();
+    }
+
+    pub fn reload(&mut self) {
+        self.flickers = crate::storage::read_all();
         self.refilter();
     }
 }

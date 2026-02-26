@@ -11,12 +11,12 @@ mod state;
 mod ui;
 use state::{App, Mode};
 
-pub fn run() -> io::Result<()> {
+pub fn run(commands: Vec<String>) -> io::Result<()> {
     enable_raw_mode()?;
     execute!(io::stdout(), EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
-    let result = run_app(&mut terminal);
+    let result = run_app(&mut terminal, commands);
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -24,8 +24,42 @@ pub fn run() -> io::Result<()> {
     result
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
-    let mut app = App::new(storage::read_all());
+fn suspend_tui(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    Ok(())
+}
+
+fn resume_tui(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
+    execute!(terminal.backend_mut(), EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    terminal.clear()?;
+    Ok(())
+}
+
+fn run_bash(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, cmd: &str) -> io::Result<()> {
+    suspend_tui(terminal)?;
+    println!();
+    let _ = std::process::Command::new("sh").arg("-c").arg(cmd).status();
+    println!("\n[Press Enter to return]");
+    let mut buf = String::new();
+    io::stdin().read_line(&mut buf)?;
+    resume_tui(terminal)
+}
+
+fn open_in_vim(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, path: &str) -> io::Result<()> {
+    suspend_tui(terminal)?;
+    let editor = if std::process::Command::new("nvim").arg("--version").output().is_ok() {
+        "nvim"
+    } else {
+        "vim"
+    };
+    let _ = std::process::Command::new(editor).arg(path).status();
+    resume_tui(terminal)
+}
+
+fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<String>) -> io::Result<()> {
+    let mut app = App::new(storage::read_all(), commands);
     loop {
         terminal.draw(|f| ui::draw(f, &app))?;
         let Event::Key(key) = event::read()? else { continue };
@@ -41,6 +75,17 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<
                 KeyCode::Char('a') => app.mode = Mode::Add,
                 KeyCode::Char('/') => app.mode = Mode::Search,
                 KeyCode::Char(':') => app.enter_command(),
+                KeyCode::Char('!') => { app.bash_input.clear(); app.mode = Mode::Bash; }
+                KeyCode::Char('v') => {
+                    if let Some(flicker) = app.selected_flicker() {
+                        let path = storage::flickers_dir()
+                            .join(format!("{}.md", flicker.meta.id))
+                            .to_string_lossy()
+                            .to_string();
+                        open_in_vim(terminal, &path)?;
+                        app.reload();
+                    }
+                }
                 KeyCode::Char('d') => app.delete_selected(),
                 KeyCode::Char('s') => app.cycle_status_selected(),
                 KeyCode::Tab => app.cycle_tab(),
@@ -56,6 +101,17 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<
             Mode::Detail => match key.code {
                 KeyCode::Esc | KeyCode::Char('q') => app.mode = Mode::List,
                 KeyCode::Char(':') => app.enter_command(),
+                KeyCode::Char('!') => { app.bash_input.clear(); app.mode = Mode::Bash; }
+                KeyCode::Char('v') => {
+                    if let Some(flicker) = app.selected_flicker() {
+                        let path = storage::flickers_dir()
+                            .join(format!("{}.md", flicker.meta.id))
+                            .to_string_lossy()
+                            .to_string();
+                        open_in_vim(terminal, &path)?;
+                        app.reload();
+                    }
+                }
                 KeyCode::Char('d') => { app.delete_selected(); app.mode = Mode::List; }
                 KeyCode::Char('s') => app.cycle_status_selected(),
                 _ => {}
@@ -90,13 +146,9 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<
                 KeyCode::Tab | KeyCode::Down => app.suggestion_next(),
                 KeyCode::Up => app.suggestion_prev(),
                 KeyCode::Enter => {
-                    // If a suggestion is highlighted and user hasn't typed args yet, accept it first
                     if app.suggestion_idx.is_some() && !app.command_input.contains(' ') {
                         app.accept_suggestion();
-                        // For commands that need args (add/search), stay in Command mode for input
-                        if app.command_input.ends_with(' ') {
-                            // don't dispatch yet
-                        } else {
+                        if !app.command_input.ends_with(' ') {
                             dispatch_command(&mut app);
                             if app.mode == Mode::Command { app.exit_command(); }
                         }
@@ -106,6 +158,21 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<
                     }
                 }
                 KeyCode::Char(c) => { app.command_input.push(c); app.update_suggestions(); }
+                _ => {}
+            },
+            Mode::Bash => match key.code {
+                KeyCode::Esc => { app.bash_input.clear(); app.mode = Mode::List; }
+                KeyCode::Backspace => { app.bash_input.pop(); }
+                KeyCode::Enter => {
+                    if !app.bash_input.is_empty() {
+                        let cmd = std::mem::take(&mut app.bash_input);
+                        app.mode = Mode::List;
+                        run_bash(terminal, &cmd)?;
+                    } else {
+                        app.mode = Mode::List;
+                    }
+                }
+                KeyCode::Char(c) => app.bash_input.push(c),
                 _ => {}
             },
         }
@@ -134,7 +201,7 @@ fn dispatch_command(app: &mut App) {
             app.search_query = query;
             app.refilter();
             app.mode = Mode::Search;
-            return; // don't call exit_command — stay in Search mode
+            return;
         }
         "" => {}
         _ => {
