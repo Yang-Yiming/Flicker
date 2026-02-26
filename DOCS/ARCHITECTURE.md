@@ -70,6 +70,11 @@ flicker show <id>
 flicker delete <id>
 flicker search <query>
 flicker status
+flicker rename <id> <new body>
+flicker bash <shell cmd>
+flicker config list
+flicker config get <key>
+flicker config set <key> <value>
 ```
 
 ### TUI Mode (interactive)
@@ -89,6 +94,7 @@ cli/
     ├── main.rs          # arg parsing (clap), dispatch
     ├── model.rs         # Flicker struct, frontmatter serde
     ├── storage.rs       # file I/O, iCloud path resolution
+    ├── config.rs        # Config struct, load/save (~/.config/flicker/config.toml)
     ├── commands/
     │   ├── mod.rs
     │   ├── add.rs
@@ -96,7 +102,10 @@ cli/
     │   ├── show.rs
     │   ├── delete.rs
     │   ├── search.rs
-    │   └── status.rs
+    │   ├── status.rs
+    │   ├── rename.rs
+    │   ├── bash.rs
+    │   └── config.rs
     └── tui/
         ├── mod.rs       # app loop, event handling
         ├── ui.rs        # layout & rendering

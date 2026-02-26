@@ -1,5 +1,6 @@
 pub mod add;
 pub mod bash;
+pub mod config;
 pub mod delete;
 pub mod list;
 pub mod rename;

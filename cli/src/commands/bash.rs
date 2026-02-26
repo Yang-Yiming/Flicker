@@ -1,5 +1,6 @@
 pub fn run(cmd: &str) {
-    let status = std::process::Command::new("sh")
+    let config = crate::config::load();
+    let status = std::process::Command::new(&config.shell)
         .arg("-c")
         .arg(cmd)
         .status()

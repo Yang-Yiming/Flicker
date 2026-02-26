@@ -1,6 +1,7 @@
 use clap::{CommandFactory, Parser, Subcommand};
 
 mod commands;
+mod config;
 mod model;
 mod storage;
 mod tui;
@@ -22,6 +23,17 @@ enum Commands {
     Status,
     Rename { id: String, body: String },
     Bash { cmd: String },
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ConfigAction {
+    List,
+    Get { key: String },
+    Set { key: String, value: String },
 }
 
 fn main() {
@@ -35,6 +47,14 @@ fn main() {
         Some(Commands::Status) => commands::status::run(),
         Some(Commands::Rename { id, body }) => commands::rename::run(&id, &body),
         Some(Commands::Bash { cmd }) => commands::bash::run(&cmd),
+        Some(Commands::Config { action }) => {
+            let action = match action {
+                ConfigAction::List => commands::config::ConfigAction::List,
+                ConfigAction::Get { key } => commands::config::ConfigAction::Get { key },
+                ConfigAction::Set { key, value } => commands::config::ConfigAction::Set { key, value },
+            };
+            commands::config::run(action);
+        }
         None => {
             let cmds: Vec<String> = Cli::command()
                 .get_subcommands()

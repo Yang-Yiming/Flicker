@@ -24,6 +24,13 @@
 - [x] `main.rs` — no-args launches TUI
 - [x] TUI command bar — `:` triggers Command mode; `add`/`delete`/`search` dispatch; unknown cmd shows error message
 - [x] TUI command autocomplete — `:` shows all candidates; typing filters; ↓/Tab navigate; Enter accepts & executes
+- [x] `commands/rename.rs` — update body of a flicker by ID
+- [x] `commands/bash.rs` — run arbitrary shell command via `sh -c`
+- [x] TUI `!` shortcut — bash input bar; suspends TUI, runs command, waits for Enter, resumes
+- [x] TUI `v` shortcut — opens selected flicker in nvim (falls back to vim); reloads on exit
+- [x] TUI autocomplete driven by clap subcommand list — no manual registration needed
+- [x] `FLICKER_DIR` env var override for local dev (iCloud not required)
+- [x] `commands/config.rs` — get/set/list config keys (`editor`, `shell`); persisted to `~/.config/flicker/config.toml`
 
 ### Next Up
 

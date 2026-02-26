@@ -16,7 +16,8 @@ pub fn run(commands: Vec<String>) -> io::Result<()> {
     execute!(io::stdout(), EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
-    let result = run_app(&mut terminal, commands);
+    let config = crate::config::load();
+    let result = run_app(&mut terminal, commands, &config);
 
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -37,28 +38,23 @@ fn resume_tui(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resu
     Ok(())
 }
 
-fn run_bash(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, cmd: &str) -> io::Result<()> {
+fn run_bash(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, cmd: &str, shell: &str) -> io::Result<()> {
     suspend_tui(terminal)?;
     println!();
-    let _ = std::process::Command::new("sh").arg("-c").arg(cmd).status();
+    let _ = std::process::Command::new(shell).arg("-c").arg(cmd).status();
     println!("\n[Press Enter to return]");
     let mut buf = String::new();
     io::stdin().read_line(&mut buf)?;
     resume_tui(terminal)
 }
 
-fn open_in_vim(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, path: &str) -> io::Result<()> {
+fn open_in_vim(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, path: &str, editor: &str) -> io::Result<()> {
     suspend_tui(terminal)?;
-    let editor = if std::process::Command::new("nvim").arg("--version").output().is_ok() {
-        "nvim"
-    } else {
-        "vim"
-    };
     let _ = std::process::Command::new(editor).arg(path).status();
     resume_tui(terminal)
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<String>) -> io::Result<()> {
+fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<String>, config: &crate::config::Config) -> io::Result<()> {
     let mut app = App::new(storage::read_all(), commands);
     loop {
         terminal.draw(|f| ui::draw(f, &app))?;
@@ -82,7 +78,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                             .join(format!("{}.md", flicker.meta.id))
                             .to_string_lossy()
                             .to_string();
-                        open_in_vim(terminal, &path)?;
+                        open_in_vim(terminal, &path, &config.editor)?;
                         app.reload();
                     }
                 }
@@ -108,7 +104,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                             .join(format!("{}.md", flicker.meta.id))
                             .to_string_lossy()
                             .to_string();
-                        open_in_vim(terminal, &path)?;
+                        open_in_vim(terminal, &path, &config.editor)?;
                         app.reload();
                     }
                 }
@@ -167,7 +163,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                     if !app.bash_input.is_empty() {
                         let cmd = std::mem::take(&mut app.bash_input);
                         app.mode = Mode::List;
-                        run_bash(terminal, &cmd)?;
+                        run_bash(terminal, &cmd, &config.shell)?;
                     } else {
                         app.mode = Mode::List;
                     }
