@@ -2,8 +2,10 @@ import SwiftUI
 
 struct FlickerListView: View {
     @StateObject private var storage = StorageService()
+    @StateObject private var syncService = SyncService()
     @State private var selectedStatus: FlickerStatus? = nil
     @State private var showingNew = false
+    @State private var showingSettings = false
 
     var filtered: [Flicker] {
         guard let s = selectedStatus else { return storage.flickers }
@@ -31,10 +33,30 @@ struct FlickerListView: View {
             }
             .navigationTitle("Flicker")
             .toolbar {
-                Button { showingNew = true } label: { Image(systemName: "plus") }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showingSettings = true } label: { Image(systemName: "gearshape") }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showingNew = true } label: { Image(systemName: "plus") }
+                }
             }
             .sheet(isPresented: $showingNew) { NewFlickerView(storage: storage) }
-            .onAppear { storage.load() }
+            .sheet(isPresented: $showingSettings) {
+                NavigationStack {
+                    SettingsView(syncService: syncService, storage: storage)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showingSettings = false }
+                            }
+                        }
+                }
+            }
+            .onAppear {
+                storage.load()
+                if syncService.isConfigured {
+                    Task { await syncService.sync(storage: storage) }
+                }
+            }
         }
     }
 }
