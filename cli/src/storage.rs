@@ -1,13 +1,35 @@
 use std::path::PathBuf;
 use crate::model::Flicker;
 
+fn icloud_path() -> PathBuf {
+    let home = std::env::var("HOME").unwrap();
+    PathBuf::from(home)
+        .join("Library/Mobile Documents/iCloud~com~flicker~app/Documents/flickers")
+}
+
+fn expand_tilde(path: &str) -> String {
+    if path.starts_with("~/") {
+        let home = std::env::var("HOME").unwrap();
+        path.replacen("~", &home, 1)
+    } else {
+        path.to_string()
+    }
+}
+
 pub fn flickers_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("FLICKER_DIR") {
         return PathBuf::from(dir);
     }
-    let home = std::env::var("HOME").unwrap();
-    PathBuf::from(home)
-        .join("Library/Mobile Documents/iCloud~com~flicker~app/Documents/flickers")
+
+    let config = crate::config::load();
+    match config.storage_path {
+        None => {
+            eprintln!("Storage path not configured. Run: flicker config set storage_path <path|icloud>");
+            std::process::exit(1);
+        }
+        Some(ref path) if path == "icloud" => icloud_path(),
+        Some(ref path) => PathBuf::from(expand_tilde(path)),
+    }
 }
 
 pub fn read_all() -> Vec<Flicker> {

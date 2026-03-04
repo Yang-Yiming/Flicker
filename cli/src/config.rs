@@ -5,6 +5,8 @@ use std::path::PathBuf;
 pub struct Config {
     pub editor: String,
     pub shell: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_path: Option<String>,
 }
 
 impl Default for Config {
@@ -12,6 +14,7 @@ impl Default for Config {
         Config {
             editor: default_editor(),
             shell: default_shell(),
+            storage_path: None,
         }
     }
 }
