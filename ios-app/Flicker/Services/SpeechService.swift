@@ -1,5 +1,6 @@
 import Speech
 import AVFoundation
+import Combine
 
 class SpeechService: ObservableObject {
     @Published var transcript = ""
@@ -35,7 +36,7 @@ class SpeechService: ObservableObject {
         request.shouldReportPartialResults = true
 
         let node = audioEngine.inputNode
-        node.installTap(onBus: 0, bufferSize: 1024, format: node.outputFormat(forBus: 0)) { [weak self] buffer, _ in
+        node.installTap(onBus: 0, bufferSize: 1024, format: node.outputFormat(forBus: 0)) { buffer, _ in
             request.append(buffer)
         }
         audioEngine.prepare()
