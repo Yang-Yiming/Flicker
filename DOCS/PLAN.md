@@ -1,6 +1,6 @@
 # Flicker Implementation Plan
 
-Flicker has two independent clients sharing the same iCloud file format. CLI and iOS app can be developed and shipped independently.
+Flicker has two independent clients that sync via Supabase. CLI and iOS app can be developed and shipped independently.
 
 ---
 
@@ -29,6 +29,20 @@ Flicker has two independent clients sharing the same iCloud file format. CLI and
 - [x] TUI command bar (`:` trigger, slash commands: add/delete/search)
 - [x] TUI command autocomplete (popup candidate list, ↓/Tab navigate, Enter execute)
 
+## Phase 4: Supabase Sync
+
+- [ ] Add `updated_at` to `Frontmatter` (backward-compatible, defaults to `created_at`)
+- [ ] Stamp `updated_at = Utc::now()` on every write
+- [ ] Add `reqwest` + `serde_json` dependencies
+- [ ] `sync.rs` — SyncClient with pull/push via Supabase REST API
+- [ ] `sync_state.rs` — persist `last_synced_at` to `~/.config/flicker/sync_state.toml`
+- [ ] `flicker sync` subcommand
+- [ ] Config: `supabase_url` and `supabase_anon_key` in config.toml
+- [ ] TUI: Supabase fields in config popup
+- [ ] TUI: sync on launch (if configured)
+- [ ] Audio upload/download in sync
+- [ ] Remove iCloud path logic (`icloud_path()`, conflict file handling)
+
 ---
 
 # iOS App
@@ -53,4 +67,15 @@ Flicker has two independent clients sharing the same iCloud file format. CLI and
 
 - [ ] Empty states, loading indicators
 - [ ] Error handling & edge cases
-- [ ] Test on real iCloud sync between devices
+
+## Phase 4: Supabase Sync
+
+- [ ] Add `updated_at` to Flicker model (backward-compatible, defaults to `createdAt`)
+- [ ] Stamp `updatedAt = Date()` on every save/updateStatus
+- [ ] Add `supabase-swift` (~> 2.0) via SPM
+- [ ] `SyncService.swift` — pull/push sync via SupabaseClient
+- [ ] `SettingsView.swift` — Supabase URL, anon key, sync button
+- [ ] Trigger sync on `onAppear` in list view (if configured)
+- [ ] Audio upload/download in sync
+- [ ] Remove iCloud storage logic (`forUbiquityContainerIdentifier:`, conflict filtering)
+- [ ] Gear icon in FlickerListView → SettingsView

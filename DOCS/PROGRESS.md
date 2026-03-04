@@ -4,7 +4,7 @@
 
 # CLI
 
-## Status: Phase 2 (TUI) ✓
+## Status: Phase 4 (Supabase Sync) — In Progress
 
 ### Completed
 
@@ -32,15 +32,22 @@
 - [x] `FLICKER_DIR` env var override for local dev (iCloud not required)
 - [x] `commands/config.rs` — get/set/list config keys (`editor`, `shell`); persisted to `~/.config/flicker/config.toml`
 
-### Next Up
+### In Progress — Supabase Sync
 
-- Phase 3: Polish — error handling, colored output, README
+- [ ] Add `updated_at` to Frontmatter
+- [ ] `sync.rs` — SyncClient (reqwest, Supabase REST API)
+- [ ] `sync_state.rs` — last_synced_at persistence
+- [ ] `flicker sync` subcommand
+- [ ] Config: `supabase_url`, `supabase_anon_key`
+- [ ] TUI sync integration
+- [ ] Audio sync (upload/download)
+- [ ] Remove iCloud path logic
 
 ---
 
 # iOS App
 
-## Status: Phase 2 (Voice Input) ✓
+## Status: Phase 4 (Supabase Sync) — In Progress
 
 ### Completed
 
@@ -54,6 +61,11 @@
 - [x] Audio saved as `audio/{id}.m4a`, linked in frontmatter
 - [x] Record button in NewFlickerView
 
-### Next Up
+### In Progress — Supabase Sync
 
-- Phase 3: Polish — empty states, loading indicators, real device iCloud sync test
+- [ ] Add `updated_at` to Flicker model
+- [ ] `SyncService.swift` — Supabase sync client
+- [ ] `SettingsView.swift` — config UI for Supabase credentials
+- [ ] Sync on app launch + manual sync button
+- [ ] Audio sync (upload/download)
+- [ ] Remove iCloud storage logic
