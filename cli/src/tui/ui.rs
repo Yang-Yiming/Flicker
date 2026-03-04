@@ -210,44 +210,95 @@ fn draw_with_config(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(""), chunks[2]);
 
     let popup_w = 60;
-    let popup_h = 8;
+    let popup_h = 10;
     let popup_x = (f.area().width.saturating_sub(popup_w)) / 2;
     let popup_y = (f.area().height.saturating_sub(popup_h)) / 2;
     let popup_rect = Rect::new(popup_x, popup_y, popup_w, popup_h);
 
-    let cfg = crate::config::load();
-    let editor_val = if app.config_editing.is_some() && app.config_selected == 0 {
-        app.config_editing.as_ref().unwrap().as_str()
-    } else {
-        &cfg.editor
-    };
-    let shell_val = if app.config_editing.is_some() && app.config_selected == 1 {
-        app.config_editing.as_ref().unwrap().as_str()
-    } else {
-        &cfg.shell
-    };
-
-    let config_items = vec![
-        ListItem::new(format!(" editor: {}", editor_val)),
-        ListItem::new(format!(" shell:  {}", shell_val)),
-    ];
-
-    let mut cfg_state = ListState::default();
-    cfg_state.select(Some(app.config_selected));
-
-    let title = if app.config_editing.is_some() {
-        " Config (Enter:save Esc:cancel) "
-    } else {
-        " Config (Enter:edit Esc:close ↑↓:navigate) "
-    };
-
     f.render_widget(Clear, popup_rect);
-    f.render_stateful_widget(
-        List::new(config_items)
-            .block(Block::default().borders(Borders::ALL).title(title))
-            .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
-            .highlight_symbol("> "),
-        popup_rect,
-        &mut cfg_state,
-    );
+
+    let popup_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)])
+        .split(popup_rect);
+
+    let config_tabs = Tabs::new(vec!["General", "Storage"])
+        .select(app.config_tab)
+        .block(Block::default().borders(Borders::ALL).title(" Config "))
+        .highlight_style(Style::default().fg(Color::Yellow));
+    f.render_widget(config_tabs, popup_chunks[0]);
+
+    let cfg = crate::config::load();
+
+    if app.config_tab == 0 {
+        let editor_val = if app.config_editing.is_some() && app.config_selected == 0 {
+            app.config_editing.as_ref().unwrap().as_str()
+        } else {
+            &cfg.editor
+        };
+        let shell_val = if app.config_editing.is_some() && app.config_selected == 1 {
+            app.config_editing.as_ref().unwrap().as_str()
+        } else {
+            &cfg.shell
+        };
+
+        let config_items = vec![
+            ListItem::new(format!(" editor: {}", editor_val)),
+            ListItem::new(format!(" shell:  {}", shell_val)),
+        ];
+
+        let mut cfg_state = ListState::default();
+        cfg_state.select(Some(app.config_selected));
+
+        let help = if app.config_editing.is_some() {
+            "(Enter:save Esc:cancel)"
+        } else {
+            "(Enter:edit Esc:close ↑↓:navigate Tab:switch)"
+        };
+
+        f.render_stateful_widget(
+            List::new(config_items)
+                .block(Block::default().borders(Borders::ALL).title(help))
+                .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
+                .highlight_symbol("> "),
+            popup_chunks[1],
+            &mut cfg_state,
+        );
+    } else {
+        if let Some(ref edit_val) = app.config_editing {
+            let config_items = vec![
+                ListItem::new(format!(" Path: {}", edit_val)),
+                ListItem::new(" [ Use iCloud ]"),
+            ];
+
+            let mut cfg_state = ListState::default();
+            cfg_state.select(Some(app.config_storage_focus));
+
+            f.render_stateful_widget(
+                List::new(config_items)
+                    .block(Block::default().borders(Borders::ALL).title("(Enter:save Esc:cancel ↑↓:navigate)"))
+                    .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
+                    .highlight_symbol("> "),
+                popup_chunks[1],
+                &mut cfg_state,
+            );
+        } else {
+            let storage_val = cfg.storage_path.as_deref().unwrap_or("");
+            let config_items = vec![
+                ListItem::new(format!(" storage_path: {}", storage_val)),
+            ];
+
+            let mut cfg_state = ListState::default();
+            cfg_state.select(Some(0));
+
+            f.render_stateful_widget(
+                List::new(config_items)
+                    .block(Block::default().borders(Borders::ALL).title("(Enter:edit Esc:close Tab:switch)"))
+                    .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
+                    .highlight_symbol("> "),
+                popup_chunks[1],
+                &mut cfg_state,
+            );
+        }
+    }
 }

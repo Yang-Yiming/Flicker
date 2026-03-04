@@ -182,52 +182,110 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                 _ => {}
             },
             Mode::Config => match key.code {
+                KeyCode::Tab => {
+                    if app.config_editing.is_none() {
+                        app.config_tab = (app.config_tab + 1) % 2;
+                        app.config_selected = 0;
+                    }
+                }
                 KeyCode::Esc => {
                     if app.config_editing.is_some() {
                         app.config_editing = None;
+                        app.config_storage_focus = 0;
                     } else {
                         app.mode = Mode::List;
+                        app.config_tab = 0;
                     }
                 }
                 KeyCode::Up | KeyCode::Char('k') => {
-                    if app.config_editing.is_none() && app.config_selected > 0 {
-                        app.config_selected -= 1;
+                    if app.config_editing.is_some() && app.config_tab == 1 {
+                        if app.config_storage_focus > 0 {
+                            app.config_storage_focus -= 1;
+                        }
+                    } else if app.config_editing.is_none() {
+                        if app.config_selected > 0 {
+                            app.config_selected -= 1;
+                        }
                     }
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
-                    if app.config_editing.is_none() && app.config_selected < 1 {
-                        app.config_selected += 1;
+                    if app.config_editing.is_some() && app.config_tab == 1 {
+                        if app.config_storage_focus < 1 {
+                            app.config_storage_focus += 1;
+                        }
+                    } else if app.config_editing.is_none() {
+                        let max = if app.config_tab == 0 { 1 } else { 0 };
+                        if app.config_selected < max {
+                            app.config_selected += 1;
+                        }
                     }
                 }
                 KeyCode::Enter => {
                     if let Some(new_val) = app.config_editing.take() {
                         let mut cfg = crate::config::load();
-                        if app.config_selected == 0 {
-                            cfg.editor = new_val;
+                        if app.config_tab == 0 {
+                            if app.config_selected == 0 {
+                                cfg.editor = new_val;
+                            } else {
+                                cfg.shell = new_val;
+                            }
                         } else {
-                            cfg.shell = new_val;
+                            if app.config_storage_focus == 1 {
+                                cfg.storage_path = Some("icloud".to_string());
+                            } else {
+                                if new_val.is_empty() {
+                                    app.status_message = Some("storage_path cannot be empty".to_string());
+                                    app.config_editing = Some(new_val);
+                                    return Ok(());
+                                }
+                                if new_val == "icloud" {
+                                    cfg.storage_path = Some(new_val);
+                                } else if new_val.starts_with("~/") || new_val.starts_with('/') {
+                                    let home = std::env::var("HOME").unwrap_or_default();
+                                    let expanded = new_val.replacen("~", &home, 1);
+                                    cfg.storage_path = Some(expanded);
+                                } else {
+                                    app.status_message = Some("Path must be 'icloud', start with '~/', or be absolute".to_string());
+                                    app.config_editing = Some(new_val);
+                                    return Ok(());
+                                }
+                            }
                         }
                         if let Err(e) = crate::config::save(&cfg) {
                             app.status_message = Some(format!("Save failed: {}", e));
                         }
+                        app.config_storage_focus = 0;
                     } else {
                         let cfg = crate::config::load();
-                        let current = if app.config_selected == 0 {
-                            cfg.editor
+                        let current = if app.config_tab == 0 {
+                            if app.config_selected == 0 {
+                                cfg.editor
+                            } else {
+                                cfg.shell
+                            }
                         } else {
-                            cfg.shell
+                            cfg.storage_path.unwrap_or_default()
                         };
                         app.config_editing = Some(current);
+                        app.config_storage_focus = 0;
                     }
                 }
                 KeyCode::Backspace => {
                     if let Some(ref mut s) = app.config_editing {
-                        s.pop();
+                        if app.config_tab == 1 && app.config_storage_focus == 1 {
+                            // On iCloud button, don't accept backspace
+                        } else {
+                            s.pop();
+                        }
                     }
                 }
                 KeyCode::Char(c) => {
                     if let Some(ref mut s) = app.config_editing {
-                        s.push(c);
+                        if app.config_tab == 1 && app.config_storage_focus == 1 {
+                            // On iCloud button, don't accept character input
+                        } else {
+                            s.push(c);
+                        }
                     }
                 }
                 _ => {}

@@ -32,6 +32,8 @@ pub struct App {
     pub suggestion_idx: Option<usize>,
     pub config_selected: usize,
     pub config_editing: Option<String>,
+    pub config_tab: usize,
+    pub config_storage_focus: usize,
 }
 
 impl App {
@@ -53,6 +55,8 @@ impl App {
             suggestion_idx: None,
             config_selected: 0,
             config_editing: None,
+            config_tab: 0,
+            config_storage_focus: 0,
         };
         app.refilter();
         app
