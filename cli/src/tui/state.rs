@@ -12,6 +12,7 @@ pub enum Mode {
     Add,
     Command,
     Bash,
+    Config,
 }
 
 pub struct App {
@@ -29,6 +30,8 @@ pub struct App {
     pub commands: Vec<String>,
     pub suggestions: Vec<String>,
     pub suggestion_idx: Option<usize>,
+    pub config_selected: usize,
+    pub config_editing: Option<String>,
 }
 
 impl App {
@@ -48,6 +51,8 @@ impl App {
             commands,
             suggestions: vec![],
             suggestion_idx: None,
+            config_selected: 0,
+            config_editing: None,
         };
         app.refilter();
         app

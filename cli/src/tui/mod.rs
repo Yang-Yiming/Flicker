@@ -72,6 +72,11 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                 KeyCode::Char('/') => app.mode = Mode::Search,
                 KeyCode::Char(':') => app.enter_command(),
                 KeyCode::Char('!') => { app.bash_input.clear(); app.mode = Mode::Bash; }
+                KeyCode::Char('?') => {
+                    app.config_selected = 0;
+                    app.config_editing = None;
+                    app.mode = Mode::Config;
+                }
                 KeyCode::Char('v') => {
                     if let Some(flicker) = app.selected_flicker() {
                         let path = storage::flickers_dir()
@@ -98,6 +103,11 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                 KeyCode::Esc | KeyCode::Char('q') => app.mode = Mode::List,
                 KeyCode::Char(':') => app.enter_command(),
                 KeyCode::Char('!') => { app.bash_input.clear(); app.mode = Mode::Bash; }
+                KeyCode::Char('?') => {
+                    app.config_selected = 0;
+                    app.config_editing = None;
+                    app.mode = Mode::Config;
+                }
                 KeyCode::Char('v') => {
                     if let Some(flicker) = app.selected_flicker() {
                         let path = storage::flickers_dir()
@@ -169,6 +179,57 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                     }
                 }
                 KeyCode::Char(c) => app.bash_input.push(c),
+                _ => {}
+            },
+            Mode::Config => match key.code {
+                KeyCode::Esc => {
+                    if app.config_editing.is_some() {
+                        app.config_editing = None;
+                    } else {
+                        app.mode = Mode::List;
+                    }
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    if app.config_editing.is_none() && app.config_selected > 0 {
+                        app.config_selected -= 1;
+                    }
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    if app.config_editing.is_none() && app.config_selected < 1 {
+                        app.config_selected += 1;
+                    }
+                }
+                KeyCode::Enter => {
+                    if let Some(new_val) = app.config_editing.take() {
+                        let mut cfg = crate::config::load();
+                        if app.config_selected == 0 {
+                            cfg.editor = new_val;
+                        } else {
+                            cfg.shell = new_val;
+                        }
+                        if let Err(e) = crate::config::save(&cfg) {
+                            app.status_message = Some(format!("Save failed: {}", e));
+                        }
+                    } else {
+                        let cfg = crate::config::load();
+                        let current = if app.config_selected == 0 {
+                            cfg.editor
+                        } else {
+                            cfg.shell
+                        };
+                        app.config_editing = Some(current);
+                    }
+                }
+                KeyCode::Backspace => {
+                    if let Some(ref mut s) = app.config_editing {
+                        s.pop();
+                    }
+                }
+                KeyCode::Char(c) => {
+                    if let Some(ref mut s) = app.config_editing {
+                        s.push(c);
+                    }
+                }
                 _ => {}
             },
         }

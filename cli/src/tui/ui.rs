@@ -15,6 +15,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Mode::Search => draw_with_input(f, app, "Search: "),
         Mode::Command => draw_with_command(f, app),
         Mode::Bash => draw_with_bash(f, app),
+        Mode::Config => draw_with_config(f, app),
         Mode::List => draw_list(f, app),
     }
 }
@@ -63,7 +64,7 @@ fn draw_list(f: &mut Frame, app: &App) {
     f.render_stateful_widget(list, chunks[1], &mut state);
 
     f.render_widget(
-        Paragraph::new("q:quit  a:add  /:search  ::cmd  !:bash  v:vim  Enter:view  s:cycle  d:delete  Tab:filter  j/k:nav"),
+        Paragraph::new("q:quit  a:add  /:search  ::cmd  !:bash  v:vim  ?:config  Enter:view  s:cycle  d:delete  Tab:filter  j/k:nav"),
         chunks[2],
     );
 }
@@ -189,5 +190,64 @@ fn draw_with_bash(f: &mut Frame, app: &App) {
         Paragraph::new(format!("!{}", app.bash_input))
             .block(Block::default().borders(Borders::ALL)),
         chunks[2],
+    );
+}
+
+fn draw_with_config(f: &mut Frame, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0), Constraint::Length(1)])
+        .split(f.area());
+
+    f.render_widget(tabs_widget(app.tab), chunks[0]);
+    let items = list_items(app);
+    let mut state = ListState::default();
+    if !app.filtered.is_empty() { state.select(Some(app.selected)); }
+    let list = List::new(items)
+        .block(Block::default().borders(Borders::ALL))
+        .highlight_style(Style::default().bg(Color::DarkGray));
+    f.render_stateful_widget(list, chunks[1], &mut state);
+    f.render_widget(Paragraph::new(""), chunks[2]);
+
+    let popup_w = 60;
+    let popup_h = 8;
+    let popup_x = (f.area().width.saturating_sub(popup_w)) / 2;
+    let popup_y = (f.area().height.saturating_sub(popup_h)) / 2;
+    let popup_rect = Rect::new(popup_x, popup_y, popup_w, popup_h);
+
+    let cfg = crate::config::load();
+    let editor_val = if app.config_editing.is_some() && app.config_selected == 0 {
+        app.config_editing.as_ref().unwrap().as_str()
+    } else {
+        &cfg.editor
+    };
+    let shell_val = if app.config_editing.is_some() && app.config_selected == 1 {
+        app.config_editing.as_ref().unwrap().as_str()
+    } else {
+        &cfg.shell
+    };
+
+    let config_items = vec![
+        ListItem::new(format!(" editor: {}", editor_val)),
+        ListItem::new(format!(" shell:  {}", shell_val)),
+    ];
+
+    let mut cfg_state = ListState::default();
+    cfg_state.select(Some(app.config_selected));
+
+    let title = if app.config_editing.is_some() {
+        " Config (Enter:save Esc:cancel) "
+    } else {
+        " Config (Enter:edit Esc:close ↑↓:navigate) "
+    };
+
+    f.render_widget(Clear, popup_rect);
+    f.render_stateful_widget(
+        List::new(config_items)
+            .block(Block::default().borders(Borders::ALL).title(title))
+            .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
+            .highlight_symbol("> "),
+        popup_rect,
+        &mut cfg_state,
     );
 }
