@@ -1,44 +1,58 @@
 import Foundation
 import Combine
 
-enum StorageError: Error { case noiCloud }
-
 class StorageService: ObservableObject {
     @Published var flickers: [Flicker] = []
 
-    private var flickersURL: URL? {
-        FileManager.default
-            .url(forUbiquityContainerIdentifier: "iCloud.com.flicker.app")?
-            .appendingPathComponent("Documents/flickers")
+    private var baseURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
-    func audioURL(for id: String) -> URL? {
-        FileManager.default
-            .url(forUbiquityContainerIdentifier: "iCloud.com.flicker.app")?
-            .appendingPathComponent("Documents/audio/\(id).m4a")
+    var flickersURL: URL { baseURL.appendingPathComponent("flickers") }
+
+    func audioURL(for id: String) -> URL {
+        baseURL.appendingPathComponent("audio/\(id).m4a")
     }
 
     func deleteAudio(id: String) throws {
-        guard let url = audioURL(for: id),
-              FileManager.default.fileExists(atPath: url.path) else { return }
+        let url = audioURL(for: id)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
         try FileManager.default.removeItem(at: url)
     }
 
     func load() {
-        guard let dir = flickersURL else { return }
+        let dir = flickersURL
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
-        flickers = files
-            .filter { $0.pathExtension == "md" && !$0.lastPathComponent.contains(" ") }
-            .compactMap { (try? String(contentsOf: $0)).flatMap { Flicker(fileContent: $0) } }
+        let all = files
+            .filter { $0.pathExtension == "md" }
+            .compactMap { url -> Flicker? in
+                guard let content = try? String(contentsOf: url) else { return nil }
+                return Flicker(fileContent: content)
+            }
+        flickers = all
             .filter { $0.status != .deleted }
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    /// Returns all flickers including deleted ones (used by sync)
+    func allFlickers() -> [Flicker] {
+        let dir = flickersURL
+        let files = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? []
+        return files
+            .filter { $0.pathExtension == "md" }
+            .compactMap { url -> Flicker? in
+                guard let content = try? String(contentsOf: url) else { return nil }
+                return Flicker(fileContent: content)
+            }
+    }
+
     func save(_ flicker: Flicker) throws {
-        guard let dir = flickersURL else { throw StorageError.noiCloud }
+        var f = flicker
+        f.updatedAt = Date()
+        let dir = flickersURL
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        try flicker.toFileContent().write(to: dir.appendingPathComponent("\(flicker.id).md"), atomically: true, encoding: .utf8)
+        try f.toFileContent().write(to: dir.appendingPathComponent("\(f.id).md"), atomically: true, encoding: .utf8)
         load()
     }
 

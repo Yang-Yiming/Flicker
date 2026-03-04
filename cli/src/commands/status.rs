@@ -7,11 +7,4 @@ pub fn run() {
         let count = flickers.iter().filter(|f| f.meta.status == s).count();
         println!("{:8}: {}", s, count);
     }
-    let conflicts = storage::conflict_files();
-    if !conflicts.is_empty() {
-        println!("\nconflicts ({}):", conflicts.len());
-        for c in &conflicts {
-            println!("  {c}");
-        }
-    }
 }
