@@ -7,6 +7,7 @@ enum FlickerStatus: String, CaseIterable {
 struct Flicker: Identifiable {
     var id: String
     var createdAt: Date
+    var updatedAt: Date
     var source: String
     var audioFile: String?
     var status: FlickerStatus
@@ -42,11 +43,13 @@ struct Flicker: Identifiable {
         self.audioFile = fm["audio_file"]
         self.body = bodyLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         self.createdAt = fm["created_at"].flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
+        self.updatedAt = fm["updated_at"].flatMap { ISO8601DateFormatter().date(from: $0) } ?? self.createdAt
     }
 
     init(id: String, body: String, audioFile: String? = nil) {
         self.id = id
         self.createdAt = Date()
+        self.updatedAt = Date()
         self.source = "ios"
         self.audioFile = audioFile
         self.status = .inbox
@@ -54,7 +57,7 @@ struct Flicker: Identifiable {
     }
 
     func toFileContent() -> String {
-        var s = "---\nid: \(id)\ncreated_at: \(ISO8601DateFormatter().string(from: createdAt))\nsource: \(source)\n"
+        var s = "---\nid: \(id)\ncreated_at: \(ISO8601DateFormatter().string(from: createdAt))\nupdated_at: \(ISO8601DateFormatter().string(from: updatedAt))\nsource: \(source)\n"
         if let audio = audioFile { s += "audio_file: \(audio)\n" }
         s += "status: \(status.rawValue)\n---\n\n\(body)\n"
         return s

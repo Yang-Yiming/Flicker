@@ -38,6 +38,7 @@ impl std::str::FromStr for Status {
 pub struct Frontmatter {
     pub id: String,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub source: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub audio_file: Option<String>,
