@@ -184,7 +184,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
             Mode::Config => match key.code {
                 KeyCode::Tab => {
                     if app.config_editing.is_none() {
-                        app.config_tab = (app.config_tab + 1) % 2;
+                        app.config_tab = (app.config_tab + 1) % 3;
                         app.config_selected = 0;
                     }
                 }
@@ -214,14 +214,58 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                             app.config_storage_focus += 1;
                         }
                     } else if app.config_editing.is_none() {
-                        let max = if app.config_tab == 0 { 1 } else { 0 };
+                        let max = match app.config_tab {
+                            0 => 1,  // General: editor, shell
+                            2 => 2,  // Supabase: url, key, sync
+                            _ => 0,  // Storage: path
+                        };
                         if app.config_selected < max {
                             app.config_selected += 1;
                         }
                     }
                 }
                 KeyCode::Enter => {
-                    if let Some(new_val) = app.config_editing.take() {
+                    if app.config_tab == 2 {
+                        // Supabase tab
+                        if let Some(new_val) = app.config_editing.take() {
+                            let mut cfg = crate::config::load();
+                            if app.config_selected == 0 {
+                                cfg.supabase_url = Some(new_val);
+                            } else {
+                                cfg.supabase_anon_key = Some(new_val);
+                            }
+                            if let Err(e) = crate::config::save(&cfg) {
+                                app.status_message = Some(format!("Save failed: {}", e));
+                            }
+                        } else if app.config_selected == 2 {
+                            // Sync action
+                            match crate::sync::SyncClient::from_config() {
+                                Some(client) => {
+                                    app.sync_status = Some("syncing...".to_string());
+                                    match client.sync() {
+                                        Ok((pulled, pushed)) => {
+                                            app.sync_status = Some(format!("pulled {pulled}, pushed {pushed}"));
+                                            app.reload();
+                                        }
+                                        Err(e) => {
+                                            app.sync_status = Some(format!("error: {e}"));
+                                        }
+                                    }
+                                }
+                                None => {
+                                    app.sync_status = Some("not configured".to_string());
+                                }
+                            }
+                        } else {
+                            let cfg = crate::config::load();
+                            let current = if app.config_selected == 0 {
+                                cfg.supabase_url.unwrap_or_default()
+                            } else {
+                                cfg.supabase_anon_key.unwrap_or_default()
+                            };
+                            app.config_editing = Some(current);
+                        }
+                    } else if let Some(new_val) = app.config_editing.take() {
                         let mut cfg = crate::config::load();
                         if app.config_tab == 0 {
                             if app.config_selected == 0 {
@@ -230,22 +274,18 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                                 cfg.shell = new_val;
                             }
                         } else {
-                            if app.config_storage_focus == 1 {
-                                cfg.storage_path = Some("icloud".to_string());
-                            } else {
+                            if app.config_storage_focus == 0 {
                                 if new_val.is_empty() {
                                     app.status_message = Some("storage_path cannot be empty".to_string());
                                     app.config_editing = Some(new_val);
                                     return Ok(());
                                 }
-                                if new_val == "icloud" {
-                                    cfg.storage_path = Some(new_val);
-                                } else if new_val.starts_with("~/") || new_val.starts_with('/') {
+                                if new_val.starts_with("~/") || new_val.starts_with('/') {
                                     let home = std::env::var("HOME").unwrap_or_default();
                                     let expanded = new_val.replacen("~", &home, 1);
                                     cfg.storage_path = Some(expanded);
                                 } else {
-                                    app.status_message = Some("Path must be 'icloud', start with '~/', or be absolute".to_string());
+                                    app.status_message = Some("Path must start with '~/' or be absolute".to_string());
                                     app.config_editing = Some(new_val);
                                     return Ok(());
                                 }
@@ -273,7 +313,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                 KeyCode::Backspace => {
                     if let Some(ref mut s) = app.config_editing {
                         if app.config_tab == 1 && app.config_storage_focus == 1 {
-                            // On iCloud button, don't accept backspace
+                            // On button, ignore
                         } else {
                             s.pop();
                         }
@@ -282,7 +322,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                 KeyCode::Char(c) => {
                     if let Some(ref mut s) = app.config_editing {
                         if app.config_tab == 1 && app.config_storage_focus == 1 {
-                            // On iCloud button, don't accept character input
+                            // On button, ignore
                         } else {
                             s.push(c);
                         }

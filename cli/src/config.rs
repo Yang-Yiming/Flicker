@@ -7,6 +7,10 @@ pub struct Config {
     pub shell: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub storage_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supabase_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supabase_anon_key: Option<String>,
 }
 
 impl Default for Config {
@@ -15,6 +19,8 @@ impl Default for Config {
             editor: default_editor(),
             shell: default_shell(),
             storage_path: None,
+            supabase_url: None,
+            supabase_anon_key: None,
         }
     }
 }

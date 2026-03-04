@@ -210,7 +210,7 @@ fn draw_with_config(f: &mut Frame, app: &App) {
     f.render_widget(Paragraph::new(""), chunks[2]);
 
     let popup_w = 60;
-    let popup_h = 10;
+    let popup_h = 12;
     let popup_x = (f.area().width.saturating_sub(popup_w)) / 2;
     let popup_y = (f.area().height.saturating_sub(popup_h)) / 2;
     let popup_rect = Rect::new(popup_x, popup_y, popup_w, popup_h);
@@ -222,7 +222,7 @@ fn draw_with_config(f: &mut Frame, app: &App) {
         .constraints([Constraint::Length(3), Constraint::Min(0)])
         .split(popup_rect);
 
-    let config_tabs = Tabs::new(vec!["General", "Storage"])
+    let config_tabs = Tabs::new(vec!["General", "Storage", "Supabase"])
         .select(app.config_tab)
         .block(Block::default().borders(Borders::ALL).title(" Config "))
         .highlight_style(Style::default().fg(Color::Yellow));
@@ -264,11 +264,10 @@ fn draw_with_config(f: &mut Frame, app: &App) {
             popup_chunks[1],
             &mut cfg_state,
         );
-    } else {
+    } else if app.config_tab == 1 {
         if let Some(ref edit_val) = app.config_editing {
             let config_items = vec![
                 ListItem::new(format!(" Path: {}", edit_val)),
-                ListItem::new(" [ Use iCloud ]"),
             ];
 
             let mut cfg_state = ListState::default();
@@ -276,7 +275,7 @@ fn draw_with_config(f: &mut Frame, app: &App) {
 
             f.render_stateful_widget(
                 List::new(config_items)
-                    .block(Block::default().borders(Borders::ALL).title("(Enter:save Esc:cancel ↑↓:navigate)"))
+                    .block(Block::default().borders(Borders::ALL).title("(Enter:save Esc:cancel)"))
                     .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
                     .highlight_symbol("> "),
                 popup_chunks[1],
@@ -300,5 +299,56 @@ fn draw_with_config(f: &mut Frame, app: &App) {
                 &mut cfg_state,
             );
         }
+    } else {
+        // Supabase tab
+        let url_val = if app.config_editing.is_some() && app.config_selected == 0 {
+            app.config_editing.as_ref().unwrap().as_str()
+        } else {
+            cfg.supabase_url.as_deref().unwrap_or("")
+        };
+        let key_val = if app.config_editing.is_some() && app.config_selected == 1 {
+            app.config_editing.as_ref().unwrap().as_str()
+        } else {
+            cfg.supabase_anon_key.as_deref().unwrap_or("")
+        };
+        let key_display = if app.config_editing.is_some() && app.config_selected == 1 {
+            key_val.to_string()
+        } else if key_val.is_empty() {
+            String::new()
+        } else {
+            format!("{}***", &key_val[..key_val.len().min(8)])
+        };
+
+        let sync_line = if let Some(ref status) = app.sync_status {
+            format!(" sync: {}", status)
+        } else if let Some(ts) = crate::sync_state::load_last_synced() {
+            format!(" last synced: {}", ts.format("%m/%d %H:%M"))
+        } else {
+            " last synced: never".to_string()
+        };
+
+        let config_items = vec![
+            ListItem::new(format!(" url:  {}", url_val)),
+            ListItem::new(format!(" key:  {}", key_display)),
+            ListItem::new(sync_line),
+        ];
+
+        let mut cfg_state = ListState::default();
+        cfg_state.select(Some(app.config_selected));
+
+        let help = if app.config_editing.is_some() {
+            "(Enter:save Esc:cancel)"
+        } else {
+            "(Enter:edit/sync Esc:close ↑↓:navigate Tab:switch)"
+        };
+
+        f.render_stateful_widget(
+            List::new(config_items)
+                .block(Block::default().borders(Borders::ALL).title(help))
+                .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
+                .highlight_symbol("> "),
+            popup_chunks[1],
+            &mut cfg_state,
+        );
     }
 }

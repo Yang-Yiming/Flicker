@@ -4,6 +4,8 @@ mod commands;
 mod config;
 mod model;
 mod storage;
+mod sync;
+mod sync_state;
 mod tui;
 
 #[derive(Parser)]
@@ -27,6 +29,7 @@ enum Commands {
         #[command(subcommand)]
         action: ConfigAction,
     },
+    Sync,
 }
 
 #[derive(Subcommand)]
@@ -54,6 +57,17 @@ fn main() {
                 ConfigAction::Set { key, value } => commands::config::ConfigAction::Set { key, value },
             };
             commands::config::run(action);
+        }
+        Some(Commands::Sync) => {
+            match sync::SyncClient::from_config() {
+                Some(client) => {
+                    match client.sync() {
+                        Ok((pulled, pushed)) => println!("Synced: pulled {pulled}, pushed {pushed}"),
+                        Err(e) => eprintln!("Sync failed: {e}"),
+                    }
+                }
+                None => eprintln!("Supabase not configured. Run:\n  flicker config set supabase_url <url>\n  flicker config set supabase_anon_key <key>"),
+            }
         }
         None => {
             let cmds: Vec<String> = Cli::command()
