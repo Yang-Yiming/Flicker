@@ -39,6 +39,14 @@ struct NewFlickerView: View {
                 }
             }
             .onChange(of: speech.transcript) { _, new in text = new }
+            .alert("Recording Error", isPresented: .init(
+                get: { speech.errorMessage != nil },
+                set: { if !$0 { speech.errorMessage = nil } }
+            )) {
+                Button("OK") { speech.errorMessage = nil }
+            } message: {
+                Text(speech.errorMessage ?? "")
+            }
         }
     }
 
@@ -47,13 +55,21 @@ struct NewFlickerView: View {
             speech.stopRecording()
         } else {
             speech.requestPermission { granted in
-                guard granted, let url = storage.audioURL(for: flickerID) else { return }
-                try? FileManager.default.createDirectory(
-                    at: url.deletingLastPathComponent(),
-                    withIntermediateDirectories: true
-                )
-                try? speech.startRecording(audioURL: url)
-                hasAudio = true
+                guard granted else {
+                    speech.errorMessage = "Microphone or speech recognition permission denied."
+                    return
+                }
+                let url = storage.audioURL(for: flickerID)
+                do {
+                    try FileManager.default.createDirectory(
+                        at: url.deletingLastPathComponent(),
+                        withIntermediateDirectories: true
+                    )
+                    try speech.startRecording(audioURL: url)
+                    hasAudio = true
+                } catch {
+                    speech.errorMessage = error.localizedDescription
+                }
             }
         }
     }

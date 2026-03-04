@@ -5,6 +5,7 @@ import Combine
 class SpeechService: ObservableObject {
     @Published var transcript = ""
     @Published var isRecording = false
+    @Published var errorMessage: String?
 
     private let recognizer = SFSpeechRecognizer()
     private var audioEngine = AVAudioEngine()
@@ -13,8 +14,14 @@ class SpeechService: ObservableObject {
     private var recorder: AVAudioRecorder?
 
     func requestPermission(completion: @escaping (Bool) -> Void) {
-        SFSpeechRecognizer.requestAuthorization { status in
-            DispatchQueue.main.async { completion(status == .authorized) }
+        AVAudioApplication.requestRecordPermission { micGranted in
+            guard micGranted else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            SFSpeechRecognizer.requestAuthorization { status in
+                DispatchQueue.main.async { completion(status == .authorized) }
+            }
         }
     }
 
