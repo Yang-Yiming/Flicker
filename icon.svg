@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <!-- Outer flame gradient -->
+    <linearGradient id="flameOuter" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0%" stop-color="#ff6b35"/>
+      <stop offset="50%" stop-color="#f7931e"/>
+      <stop offset="100%" stop-color="#ffcc02"/>
+    </linearGradient>
+    <!-- Inner flame gradient -->
+    <linearGradient id="flameInner" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0%" stop-color="#ffcc02"/>
+      <stop offset="100%" stop-color="#fffbe6"/>
+    </linearGradient>
+    <!-- Glow filter -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Soft ambient glow -->
+    <radialGradient id="ambient" cx="0.5" cy="0.45" r="0.4">
+      <stop offset="0%" stop-color="#ff6b35" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ff6b35" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bg)"/>
+
+  <!-- Ambient glow behind flame -->
+  <ellipse cx="256" cy="240" rx="180" ry="200" fill="url(#ambient)"/>
+
+  <!-- Outer flame -->
+  <path d="
+    M 256 88
+    C 256 88, 310 160, 328 210
+    C 346 260, 352 290, 348 320
+    C 344 350, 330 375, 310 395
+    C 290 415, 270 425, 256 428
+    C 242 425, 222 415, 202 395
+    C 182 375, 168 350, 164 320
+    C 160 290, 166 260, 184 210
+    C 202 160, 256 88, 256 88
+    Z
+  " fill="url(#flameOuter)" filter="url(#glow)"/>
+
+  <!-- Mid flame wisp (left) -->
+  <path d="
+    M 232 180
+    C 220 220, 198 260, 196 300
+    C 194 330, 206 370, 230 400
+    C 240 412, 250 420, 256 425
+    C 242 420, 218 405, 205 385
+    C 185 355, 178 320, 184 285
+    C 190 250, 215 205, 232 180
+    Z
+  " fill="#ff8c42" opacity="0.6"/>
+
+  <!-- Inner flame -->
+  <path d="
+    M 256 200
+    C 256 200, 290 255, 298 290
+    C 306 325, 300 358, 286 380
+    C 275 398, 265 410, 256 418
+    C 247 410, 237 398, 226 380
+    C 212 358, 206 325, 214 290
+    C 222 255, 256 200, 256 200
+    Z
+  " fill="url(#flameInner)" opacity="0.9"/>
+
+  <!-- Bright core -->
+  <ellipse cx="256" cy="350" rx="24" ry="40" fill="#fffbe6" opacity="0.7"/>
+
+  <!-- Tiny spark particles -->
+  <circle cx="216" cy="150" r="3" fill="#ffcc02" opacity="0.7"/>
+  <circle cx="298" cy="132" r="2.5" fill="#f7931e" opacity="0.6"/>
+  <circle cx="190" cy="180" r="2" fill="#ffcc02" opacity="0.5"/>
+  <circle cx="310" cy="168" r="2" fill="#ff6b35" opacity="0.5"/>
+</svg>
