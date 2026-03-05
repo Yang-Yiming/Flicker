@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 class SyncService: ObservableObject {
@@ -69,7 +70,7 @@ class SyncService: ObservableObject {
             throw SyncError.pullFailed
         }
 
-        let rows = try JSONDecoder().decode([FlickerRow].self, from: data)
+        let rows = try JSONDecoder().decode([FlickerSyncRow].self, from: data)
 
         await MainActor.run {
             for row in rows {
@@ -120,7 +121,7 @@ class SyncService: ObservableObject {
 
         guard !toPush.isEmpty else { return }
 
-        let rows = toPush.map { FlickerRow.from(flicker: $0) }
+        let rows = toPush.map { FlickerSyncRow.from(flicker: $0) }
         let body = try JSONEncoder().encode(rows)
 
         guard let url = URL(string: "\(baseURL)/rest/v1/flickers") else { throw SyncError.badURL }
@@ -193,7 +194,7 @@ enum SyncError: LocalizedError {
     }
 }
 
-private struct FlickerRow: Codable {
+private struct FlickerSyncRow: Codable {
     let id: String
     let created_at: String
     let updated_at: String
@@ -202,8 +203,8 @@ private struct FlickerRow: Codable {
     let status: String
     let body: String
 
-    static func from(flicker f: Flicker) -> FlickerRow {
-        FlickerRow(
+    static func from(flicker f: Flicker) -> FlickerSyncRow {
+        FlickerSyncRow(
             id: f.id,
             created_at: ISO8601DateFormatter().string(from: f.createdAt),
             updated_at: ISO8601DateFormatter().string(from: f.updatedAt),
