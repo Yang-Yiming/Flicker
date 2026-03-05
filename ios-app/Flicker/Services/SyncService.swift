@@ -106,31 +106,31 @@ class SyncService: ObservableObject {
 
         let toPush: [Flicker]
         if let since = lastSyncedAt {
-            toPush = allFlickers.filter { $0.updatedAt > since }
+            toPush = allFlickers.filter { $0.updatedAt > since && $0.status != .deleted }
         } else {
-            toPush = allFlickers
+            toPush = allFlickers.filter { $0.status != .deleted }
         }
 
         guard !toPush.isEmpty else { return }
-
-        let rows = toPush.map { FlickerSyncRow.from(flicker: $0) }
-        let body = try JSONEncoder().encode(rows)
-
         guard let url = URL(string: "\(baseURL)/rest/v1/flickers") else { throw SyncError.badURL }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = body
-        request.addValue(anonKey, forHTTPHeaderField: "apikey")
-        request.addValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
+        for flicker in toPush {
+            let row = FlickerSyncRow.from(flicker: flicker)
+            let body = try JSONEncoder().encode(row)
 
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            throw SyncError.pushFailed
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = body
+            request.addValue(anonKey, forHTTPHeaderField: "apikey")
+            request.addValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.addValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
+
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                throw SyncError.pushFailed
+            }
         }
-
     }
 }
 

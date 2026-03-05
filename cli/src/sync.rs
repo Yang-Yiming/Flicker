@@ -83,7 +83,7 @@ impl SyncClient {
     fn pull(&self, since: Option<DateTime<Utc>>) -> Result<usize, String> {
         let mut url = format!("{}/rest/v1/flickers?select=*", self.base_url);
         if let Some(ts) = since {
-            url.push_str(&format!("&updated_at=gt.{}", ts.to_rfc3339()));
+            url.push_str(&format!("&updated_at=gt.{}", ts.to_rfc3339().replace("+", "%2B")));
         }
 
         let mut req = self.client.get(&url);
@@ -130,31 +130,45 @@ impl SyncClient {
     fn push(&self, since: Option<DateTime<Utc>>) -> Result<usize, String> {
         let all = storage::read_all();
         let to_push: Vec<&Flicker> = match since {
-            Some(ts) => all.iter().filter(|f| f.meta.updated_at > ts).collect(),
-            None => all.iter().collect(),
+            Some(ts) => all.iter()
+                .filter(|f| f.meta.updated_at > ts)
+                .filter(|f| f.meta.status != Status::Deleted)
+                .collect(),
+            None => all.iter()
+                .filter(|f| f.meta.status != Status::Deleted)
+                .collect(),
         };
 
         if to_push.is_empty() {
             return Ok(0);
         }
 
-        let rows: Vec<FlickerRow> = to_push.iter().map(|f| FlickerRow::from_flicker(f)).collect();
-        let body = serde_json::to_string(&rows).map_err(|e| format!("serialize failed: {e}"))?;
-
         let url = format!("{}/rest/v1/flickers", self.base_url);
-        let mut req = self.client.post(&url).body(body).header("Content-Type", "application/json").header("Prefer", "resolution=merge-duplicates");
-        for (k, v) in self.headers() {
-            req = req.header(k, v);
+        let mut count = 0;
+
+        for flicker in to_push {
+            let row = FlickerRow::from_flicker(flicker);
+            let body = serde_json::to_string(&row).map_err(|e| format!("serialize failed: {e}"))?;
+
+            let mut req = self.client.post(&url)
+                .body(body)
+                .header("Content-Type", "application/json")
+                .header("Prefer", "resolution=merge-duplicates");
+
+            for (k, v) in self.headers() {
+                req = req.header(k, v);
+            }
+
+            let resp = req.send().map_err(|e| format!("push request failed: {e}"))?;
+            if !resp.status().is_success() {
+                let status = resp.status();
+                let body = resp.text().unwrap_or_default();
+                return Err(format!("push failed for {}: HTTP {} — {}", flicker.meta.id, status, body));
+            }
+            count += 1;
         }
 
-        let resp = req.send().map_err(|e| format!("push request failed: {e}"))?;
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let body = resp.text().unwrap_or_default();
-            return Err(format!("push failed: HTTP {} — {}", status, body));
-        }
-
-        Ok(to_push.len())
+        Ok(count)
     }
 
     /// Full pull-then-push sync cycle.
