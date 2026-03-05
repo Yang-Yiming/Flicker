@@ -197,30 +197,32 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                         app.config_tab = 0;
                     }
                 }
-                KeyCode::Up | KeyCode::Char('k') => {
+                KeyCode::Up | KeyCode::Char('k') if app.config_editing.is_none() => {
+                    if app.config_selected > 0 {
+                        app.config_selected -= 1;
+                    }
+                }
+                KeyCode::Up => {
                     if app.config_editing.is_some() && app.config_tab == 1 {
                         if app.config_storage_focus > 0 {
                             app.config_storage_focus -= 1;
                         }
-                    } else if app.config_editing.is_none() {
-                        if app.config_selected > 0 {
-                            app.config_selected -= 1;
-                        }
                     }
                 }
-                KeyCode::Down | KeyCode::Char('j') => {
+                KeyCode::Down | KeyCode::Char('j') if app.config_editing.is_none() => {
+                    let max = match app.config_tab {
+                        0 => 1,  // General: editor, shell
+                        2 => 2,  // Supabase: url, key, sync
+                        _ => 0,  // Storage: path
+                    };
+                    if app.config_selected < max {
+                        app.config_selected += 1;
+                    }
+                }
+                KeyCode::Down => {
                     if app.config_editing.is_some() && app.config_tab == 1 {
                         if app.config_storage_focus < 1 {
                             app.config_storage_focus += 1;
-                        }
-                    } else if app.config_editing.is_none() {
-                        let max = match app.config_tab {
-                            0 => 1,  // General: editor, shell
-                            2 => 2,  // Supabase: url, key, sync
-                            _ => 0,  // Storage: path
-                        };
-                        if app.config_selected < max {
-                            app.config_selected += 1;
                         }
                     }
                 }

@@ -56,7 +56,3 @@ pub fn write(flicker: &mut Flicker) -> std::io::Result<()> {
     std::fs::create_dir_all(&dir)?;
     std::fs::write(dir.join(format!("{}.md", flicker.meta.id)), flicker.to_file_content())
 }
-
-pub fn audio_dir() -> PathBuf {
-    flickers_dir().parent().unwrap().join("audio")
-}
