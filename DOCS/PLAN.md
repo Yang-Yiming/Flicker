@@ -40,7 +40,6 @@ Flicker has two independent clients that sync via Supabase. CLI and iOS app can 
 - [ ] Config: `supabase_url` and `supabase_anon_key` in config.toml
 - [ ] TUI: Supabase fields in config popup
 - [ ] TUI: sync on launch (if configured)
-- [ ] Audio upload/download in sync
 - [ ] Remove iCloud path logic (`icloud_path()`, conflict file handling)
 
 ---
@@ -76,6 +75,5 @@ Flicker has two independent clients that sync via Supabase. CLI and iOS app can 
 - [ ] `SyncService.swift` — pull/push sync via SupabaseClient
 - [ ] `SettingsView.swift` — Supabase URL, anon key, sync button
 - [ ] Trigger sync on `onAppear` in list view (if configured)
-- [ ] Audio upload/download in sync
 - [ ] Remove iCloud storage logic (`forUbiquityContainerIdentifier:`, conflict filtering)
 - [ ] Gear icon in FlickerListView → SettingsView

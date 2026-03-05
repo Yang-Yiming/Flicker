@@ -97,14 +97,6 @@ class SyncService: ObservableObject {
             storage.load()
         }
 
-        // Download audio for pulled flickers
-        for row in rows {
-            guard let remote = row.toFlicker(), remote.audioFile != nil else { continue }
-            let audioURL = storage.audioURL(for: remote.id)
-            if !FileManager.default.fileExists(atPath: audioURL.path) {
-                try? await downloadAudio(id: remote.id, to: audioURL)
-            }
-        }
     }
 
     // MARK: - Push
@@ -139,44 +131,6 @@ class SyncService: ObservableObject {
             throw SyncError.pushFailed
         }
 
-        // Upload audio
-        for f in toPush {
-            if f.audioFile != nil {
-                let audioURL = storage.audioURL(for: f.id)
-                if FileManager.default.fileExists(atPath: audioURL.path) {
-                    try? await uploadAudio(id: f.id, from: audioURL)
-                }
-            }
-        }
-    }
-
-    // MARK: - Audio
-
-    private func uploadAudio(id: String, from localURL: URL) async throws {
-        guard let url = URL(string: "\(baseURL)/storage/v1/object/flicker-audio/\(id).m4a") else { return }
-        let data = try Data(contentsOf: localURL)
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = data
-        request.addValue(anonKey, forHTTPHeaderField: "apikey")
-        request.addValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
-        request.addValue("audio/mp4", forHTTPHeaderField: "Content-Type")
-        request.addValue("true", forHTTPHeaderField: "x-upsert")
-
-        let (_, _) = try await URLSession.shared.data(for: request)
-    }
-
-    private func downloadAudio(id: String, to localURL: URL) async throws {
-        guard let url = URL(string: "\(baseURL)/storage/v1/object/flicker-audio/\(id).m4a") else { return }
-
-        var request = URLRequest(url: url)
-        request.addValue(anonKey, forHTTPHeaderField: "apikey")
-        request.addValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        try FileManager.default.createDirectory(at: localURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try data.write(to: localURL)
     }
 }
 

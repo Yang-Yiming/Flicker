@@ -15,7 +15,6 @@ Both clients store flickers locally as Markdown files. Supabase acts as the sync
 ## Sync Backend — Supabase
 
 - **Database:** PostgreSQL table `flickers` stores metadata + body
-- **Storage:** `flicker-audio` bucket stores audio files as `{id}.m4a`
 - **Auth:** No RLS, no user auth — single-user personal app. The anon key acts as the access credential.
 - **Protocol:** REST API via PostgREST (CLI uses reqwest, iOS uses supabase-swift)
 
@@ -33,15 +32,11 @@ sync():
     local = read_local(remote.id)
     if local == nil OR remote.updated_at > local.updated_at:
       write_local(remote)
-      if remote.audio_file AND !local_audio_exists(remote.id):
-        download_audio(remote.id)
 
   // Phase 2: Push
   local_changes = all local flickers where updated_at > last_synced
   for each local in local_changes:
     UPSERT to /rest/v1/flickers
-    if local.audio_file AND audio_exists_locally(local.id):
-      upload_audio(local.id)
 
   // Phase 3: Update timestamp
   save_last_synced_at(now())
@@ -62,8 +57,6 @@ CREATE TABLE flickers (
 
 CREATE INDEX idx_flickers_updated_at ON flickers (updated_at);
 ```
-
-Storage bucket: `flicker-audio` (path pattern: `{flicker_id}.m4a`)
 
 ## Local Directory Structure
 

@@ -1,7 +1,5 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-
 use crate::config;
 use crate::model::{Flicker, Frontmatter, Status};
 use crate::storage;
@@ -121,15 +119,6 @@ impl SyncClient {
                 .map_err(|e| format!("write failed: {e}"))?;
                 count += 1;
 
-                // Download audio if remote has it and we don't
-                if remote.meta.audio_file.is_some() {
-                    let audio_path = storage::audio_dir().join(format!("{}.m4a", remote.meta.id));
-                    if !audio_path.exists() {
-                        if let Err(e) = self.download_audio(&remote.meta.id, &audio_path) {
-                            eprintln!("warning: audio download for {} failed: {}", remote.meta.id, e);
-                        }
-                    }
-                }
             }
         }
 
@@ -165,58 +154,7 @@ impl SyncClient {
             return Err(format!("push failed: HTTP {} — {}", status, body));
         }
 
-        // Upload audio for pushed flickers
-        for f in &to_push {
-            if f.meta.audio_file.is_some() {
-                let audio_path = storage::audio_dir().join(format!("{}.m4a", f.meta.id));
-                if audio_path.exists() {
-                    if let Err(e) = self.upload_audio(&f.meta.id, &audio_path) {
-                        eprintln!("warning: audio upload for {} failed: {}", f.meta.id, e);
-                    }
-                }
-            }
-        }
-
         Ok(to_push.len())
-    }
-
-    fn upload_audio(&self, id: &str, local_path: &PathBuf) -> Result<(), String> {
-        let url = format!("{}/storage/v1/object/flicker-audio/{}.m4a", self.base_url, id);
-        let data = std::fs::read(local_path).map_err(|e| format!("read audio: {e}"))?;
-
-        let mut req = self.client.post(&url)
-            .body(data)
-            .header("Content-Type", "audio/mp4")
-            .header("x-upsert", "true");
-        for (k, v) in self.headers() {
-            req = req.header(k, v);
-        }
-
-        let resp = req.send().map_err(|e| format!("upload: {e}"))?;
-        if !resp.status().is_success() {
-            return Err(format!("upload HTTP {}", resp.status()));
-        }
-        Ok(())
-    }
-
-    fn download_audio(&self, id: &str, local_path: &PathBuf) -> Result<(), String> {
-        let url = format!("{}/storage/v1/object/flicker-audio/{}.m4a", self.base_url, id);
-        let mut req = self.client.get(&url);
-        for (k, v) in self.headers() {
-            req = req.header(k, v);
-        }
-
-        let resp = req.send().map_err(|e| format!("download: {e}"))?;
-        if !resp.status().is_success() {
-            return Err(format!("download HTTP {}", resp.status()));
-        }
-
-        if let Some(parent) = local_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| format!("mkdir: {e}"))?;
-        }
-        let bytes = resp.bytes().map_err(|e| format!("read bytes: {e}"))?;
-        std::fs::write(local_path, &bytes).map_err(|e| format!("write audio: {e}"))?;
-        Ok(())
     }
 
     /// Full pull-then-push sync cycle.
