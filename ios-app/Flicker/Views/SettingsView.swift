@@ -5,10 +5,23 @@ struct SettingsView: View {
     let storage: StorageService
     @State private var supabaseURL = UserDefaults.standard.string(forKey: "supabase_url") ?? ""
     @State private var anonKey = UserDefaults.standard.string(forKey: "supabase_anon_key") ?? ""
+    @State private var speechLocale = UserDefaults.standard.string(forKey: "speech_locale") ?? ""
     @State private var saved = false
 
     var body: some View {
         Form {
+            Section("Speech") {
+                Picker("Language", selection: $speechLocale) {
+                    Text("Auto (Device Default)").tag("")
+                    Text("zh-Hans (简体中文)").tag("zh-Hans")
+                    Text("en-US (English)").tag("en-US")
+                    Text("ja-JP (日本語)").tag("ja-JP")
+                }
+                .onChange(of: speechLocale) { _, value in
+                    UserDefaults.standard.set(value, forKey: "speech_locale")
+                }
+            }
+
             Section("Supabase") {
                 TextField("URL", text: $supabaseURL)
                     .textInputAutocapitalization(.never)

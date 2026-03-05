@@ -7,7 +7,11 @@ class SpeechService: ObservableObject {
     @Published var isRecording = false
     @Published var errorMessage: String?
 
-    private let recognizer = SFSpeechRecognizer()
+    private let recognizer: SFSpeechRecognizer? = {
+        let id = UserDefaults.standard.string(forKey: "speech_locale") ?? ""
+        let locale = id.isEmpty ? Locale.autoupdatingCurrent : Locale(identifier: id)
+        return SFSpeechRecognizer(locale: locale)
+    }()
     private var audioEngine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
