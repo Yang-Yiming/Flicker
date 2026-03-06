@@ -1,4 +1,4 @@
-use crate::config::{load, save};
+use flicker_core::config::{load, save};
 
 pub enum ConfigAction {
     List,

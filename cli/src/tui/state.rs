@@ -1,6 +1,4 @@
-use chrono::Utc;
-use uuid::Uuid;
-use crate::model::{Flicker, Frontmatter, Status};
+use flicker_core::{Flicker, Status};
 
 pub const MAX_SUGGESTIONS: usize = 5;
 
@@ -171,7 +169,7 @@ impl App {
     pub fn delete_selected(&mut self) {
         if let Some(&idx) = self.filtered.get(self.selected) {
             self.flickers[idx].meta.status = Status::Deleted;
-            crate::storage::write(&mut self.flickers[idx]).ok();
+            flicker_core::storage::write(&mut self.flickers[idx]).ok();
             self.refilter();
         }
     }
@@ -183,31 +181,20 @@ impl App {
                 Status::Kept => Status::Archived,
                 Status::Archived | Status::Deleted => Status::Inbox,
             };
-            crate::storage::write(&mut self.flickers[idx]).ok();
+            flicker_core::storage::write(&mut self.flickers[idx]).ok();
             self.refilter();
         }
     }
 
     pub fn add_flicker(&mut self, text: String) {
-        let id = Uuid::new_v4().to_string().replace('-', "")[..8].to_string();
-        let mut flicker = Flicker {
-            meta: Frontmatter {
-                id,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-                source: "cli".to_string(),
-                audio_file: None,
-                status: Status::Inbox,
-            },
-            body: text,
-        };
-        crate::storage::write(&mut flicker).ok();
+        let mut flicker = Flicker::new(text, "cli");
+        flicker_core::storage::write(&mut flicker).ok();
         self.flickers.push(flicker);
         self.refilter();
     }
 
     pub fn reload(&mut self) {
-        self.flickers = crate::storage::read_all();
+        self.flickers = flicker_core::storage::read_all();
         self.refilter();
     }
 }

@@ -1,4 +1,4 @@
-cli/target/
+target/
 .DS_Store
 xcuserdata/
 *.xcuserstate

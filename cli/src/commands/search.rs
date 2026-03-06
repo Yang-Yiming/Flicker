@@ -1,5 +1,5 @@
-use crate::model::Status;
-use crate::storage;
+use flicker_core::Status;
+use flicker_core::storage;
 
 pub fn run(query: &str) {
     let q = query.to_lowercase();

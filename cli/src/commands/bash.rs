@@ -1,5 +1,5 @@
 pub fn run(cmd: &str) {
-    let config = crate::config::load();
+    let config = flicker_core::config::load();
     let status = std::process::Command::new(&config.shell)
         .arg("-c")
         .arg(cmd)

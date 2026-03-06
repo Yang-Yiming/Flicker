@@ -5,7 +5,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Tabs, Wrap},
 };
-use crate::model::Status;
+use flicker_core::Status;
 use super::state::{App, Mode, MAX_SUGGESTIONS};
 
 pub fn draw(f: &mut Frame, app: &App) {
@@ -228,7 +228,7 @@ fn draw_with_config(f: &mut Frame, app: &App) {
         .highlight_style(Style::default().fg(Color::Yellow));
     f.render_widget(config_tabs, popup_chunks[0]);
 
-    let cfg = crate::config::load();
+    let cfg = flicker_core::config::load();
 
     if app.config_tab == 0 {
         let editor_val = if app.config_editing.is_some() && app.config_selected == 0 {
@@ -321,7 +321,7 @@ fn draw_with_config(f: &mut Frame, app: &App) {
 
         let sync_line = if let Some(ref status) = app.sync_status {
             format!(" sync: {}", status)
-        } else if let Some(ts) = crate::sync_state::load_last_synced() {
+        } else if let Some(ts) = flicker_core::sync_state::load_last_synced() {
             format!(" last synced: {}", ts.format("%m/%d %H:%M"))
         } else {
             " last synced: never".to_string()

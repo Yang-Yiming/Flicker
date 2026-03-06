@@ -1,4 +1,4 @@
-use crate::storage;
+use flicker_core::storage;
 
 pub fn run(id: &str) {
     match storage::read_one(id) {

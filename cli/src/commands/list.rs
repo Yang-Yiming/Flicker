@@ -1,5 +1,5 @@
-use crate::model::Status;
-use crate::storage;
+use flicker_core::Status;
+use flicker_core::storage;
 use std::str::FromStr;
 
 pub fn run(status_filter: Option<&str>) {

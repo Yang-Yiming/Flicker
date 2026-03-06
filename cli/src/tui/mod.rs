@@ -5,7 +5,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
-use crate::storage;
+use flicker_core::storage;
 
 mod state;
 mod ui;
@@ -16,7 +16,7 @@ pub fn run(commands: Vec<String>) -> io::Result<()> {
     execute!(io::stdout(), EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
 
-    let config = crate::config::load();
+    let config = flicker_core::config::load();
     let result = run_app(&mut terminal, commands, &config);
 
     disable_raw_mode()?;
@@ -54,7 +54,7 @@ fn open_in_vim(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, path: &str
     resume_tui(terminal)
 }
 
-fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<String>, config: &crate::config::Config) -> io::Result<()> {
+fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<String>, config: &flicker_core::Config) -> io::Result<()> {
     let mut app = App::new(storage::read_all(), commands);
     loop {
         terminal.draw(|f| ui::draw(f, &app))?;
@@ -230,18 +230,18 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                     if app.config_tab == 2 {
                         // Supabase tab
                         if let Some(new_val) = app.config_editing.take() {
-                            let mut cfg = crate::config::load();
+                            let mut cfg = flicker_core::config::load();
                             if app.config_selected == 0 {
                                 cfg.supabase_url = Some(new_val);
                             } else {
                                 cfg.supabase_anon_key = Some(new_val);
                             }
-                            if let Err(e) = crate::config::save(&cfg) {
+                            if let Err(e) = flicker_core::config::save(&cfg) {
                                 app.status_message = Some(format!("Save failed: {}", e));
                             }
                         } else if app.config_selected == 2 {
                             // Sync action
-                            match crate::sync::SyncClient::from_config() {
+                            match flicker_core::SyncClient::from_config() {
                                 Some(client) => {
                                     app.sync_status = Some("syncing...".to_string());
                                     match client.sync() {
@@ -259,7 +259,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                                 }
                             }
                         } else {
-                            let cfg = crate::config::load();
+                            let cfg = flicker_core::config::load();
                             let current = if app.config_selected == 0 {
                                 cfg.supabase_url.unwrap_or_default()
                             } else {
@@ -268,7 +268,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                             app.config_editing = Some(current);
                         }
                     } else if let Some(new_val) = app.config_editing.take() {
-                        let mut cfg = crate::config::load();
+                        let mut cfg = flicker_core::config::load();
                         if app.config_tab == 0 {
                             if app.config_selected == 0 {
                                 cfg.editor = new_val;
@@ -293,12 +293,12 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                                 }
                             }
                         }
-                        if let Err(e) = crate::config::save(&cfg) {
+                        if let Err(e) = flicker_core::config::save(&cfg) {
                             app.status_message = Some(format!("Save failed: {}", e));
                         }
                         app.config_storage_focus = 0;
                     } else {
-                        let cfg = crate::config::load();
+                        let cfg = flicker_core::config::load();
                         let current = if app.config_tab == 0 {
                             if app.config_selected == 0 {
                                 cfg.editor

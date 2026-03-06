@@ -52,6 +52,21 @@ pub struct Flicker {
 }
 
 impl Flicker {
+    pub fn new(text: String, source: &str) -> Self {
+        let id = uuid::Uuid::new_v4().to_string().replace('-', "")[..8].to_string();
+        Flicker {
+            meta: Frontmatter {
+                id,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                source: source.to_string(),
+                audio_file: None,
+                status: Status::Inbox,
+            },
+            body: text,
+        }
+    }
+
     pub fn to_file_content(&self) -> String {
         let yaml = serde_yaml::to_string(&self.meta).unwrap();
         format!("---\n{}---\n\n{}", yaml, self.body)

@@ -1,11 +1,6 @@
 use clap::{CommandFactory, Parser, Subcommand};
 
 mod commands;
-mod config;
-mod model;
-mod storage;
-mod sync;
-mod sync_state;
 mod tui;
 
 #[derive(Parser)]
@@ -59,7 +54,7 @@ fn main() {
             commands::config::run(action);
         }
         Some(Commands::Sync) => {
-            match sync::SyncClient::from_config() {
+            match flicker_core::SyncClient::from_config() {
                 Some(client) => {
                     match client.sync() {
                         Ok((pulled, pushed)) => println!("Synced: pulled {pulled}, pushed {pushed}"),
