@@ -30,6 +30,24 @@ struct FlickerListView: View {
                     NavigationLink(destination: FlickerDetailView(flicker: flicker, storage: storage)) {
                         FlickerRow(flicker: flicker)
                     }
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            try? storage.delete(flicker)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        Button {
+                            if flicker.status == .archived {
+                                try? storage.updateStatus(flicker, status: .inbox)
+                            } else {
+                                try? storage.updateStatus(flicker, status: .archived)
+                            }
+                        } label: {
+                            Label(flicker.status == .archived ? "Inbox" : "Archive",
+                                  systemImage: flicker.status == .archived ? "tray" : "archivebox")
+                        }
+                        .tint(flicker.status == .archived ? .indigo : .orange)
+                    }
                 }
                 .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 80) }
             }
