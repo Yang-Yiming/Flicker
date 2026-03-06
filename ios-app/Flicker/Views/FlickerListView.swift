@@ -6,6 +6,7 @@ struct FlickerListView: View {
     @State private var selectedStatus: FlickerStatus? = nil
     @State private var showingNew = false
     @State private var showingSettings = false
+    @State private var isQuickRecording = false
 
     var filtered: [Flicker] {
         guard let s = selectedStatus else { return storage.flickers }
@@ -30,6 +31,10 @@ struct FlickerListView: View {
                         FlickerRow(flicker: flicker)
                     }
                 }
+                .safeAreaInset(edge: .bottom) { Color.clear.frame(height: 80) }
+            }
+            .overlay(alignment: .bottom) {
+                QuickRecordView(storage: storage, isRecording: $isQuickRecording)
             }
             .navigationTitle("Flicker")
             .toolbar {
@@ -38,6 +43,7 @@ struct FlickerListView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingNew = true } label: { Image(systemName: "plus") }
+                        .disabled(isQuickRecording)
                 }
             }
             .sheet(isPresented: $showingNew) { NewFlickerView(storage: storage) }
