@@ -5,6 +5,7 @@ struct FlickerDetailView: View {
     let storage: StorageService
     @State private var editing = false
     @State private var editText = ""
+    @State private var copiedToClipboard = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -40,6 +41,16 @@ struct FlickerDetailView: View {
                             }
                         }
                     }.buttonStyle(.bordered)
+
+                    Menu {
+                        Button("ChatGPT") { copyAndOpen(scheme: "chatgpt://") }
+                        Button("Claude") { copyAndOpen(scheme: "claude://") }
+                        Button("Copy Only") { copyAndOpen(scheme: nil) }
+                    } label: {
+                        Label(copiedToClipboard ? "Copied!" : "Chat", systemImage: copiedToClipboard ? "checkmark" : "ellipsis.bubble")
+                    }
+                    .buttonStyle(.bordered)
+
                     Spacer()
                     Button("Delete", role: .destructive) {
                         try? storage.delete(flicker)
@@ -57,6 +68,18 @@ struct FlickerDetailView: View {
             } else {
                 Button("Edit") { editText = flicker.body; editing = true }
             }
+        }
+    }
+
+    private func copyAndOpen(scheme: String?) {
+        let template = UserDefaults.standard.string(forKey: "chat_prompt_template")
+            .flatMap { $0.isEmpty ? nil : $0 } ?? Flicker.defaultChatPromptTemplate
+        let prompt = template.replacingOccurrences(of: "{{content}}", with: flicker.body)
+        UIPasteboard.general.string = prompt
+        copiedToClipboard = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copiedToClipboard = false }
+        if let scheme, let url = URL(string: scheme) {
+            UIApplication.shared.open(url)
         }
     }
 }
