@@ -6,10 +6,36 @@ struct SettingsView: View {
     @State private var supabaseURL = UserDefaults.standard.string(forKey: "supabase_url") ?? ""
     @State private var anonKey = UserDefaults.standard.string(forKey: "supabase_anon_key") ?? ""
     @State private var speechLocale = UserDefaults.standard.string(forKey: "speech_locale") ?? ""
+    @State private var chatPromptTemplate = UserDefaults.standard.string(forKey: "chat_prompt_template") ?? ""
     @State private var saved = false
 
     var body: some View {
         Form {
+            Section("Chat with AI") {
+                TextEditor(text: $chatPromptTemplate)
+                    .frame(minHeight: 120)
+                    .font(.body.monospaced())
+                    .overlay(
+                        Group {
+                            if chatPromptTemplate.isEmpty {
+                                Text(Flicker.defaultChatPromptTemplate)
+                                    .foregroundColor(.secondary.opacity(0.5))
+                                    .font(.body.monospaced())
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 8)
+                                    .allowsHitTesting(false)
+                            }
+                        }, alignment: .topLeading
+                    )
+                    .onChange(of: chatPromptTemplate) { _, value in
+                        UserDefaults.standard.set(value, forKey: "chat_prompt_template")
+                    }
+
+                Text("Use {{content}} as placeholder for the flicker text.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
             Section("Speech") {
                 Picker("Language", selection: $speechLocale) {
                     Text("Auto (Device Default)").tag("")

@@ -11,6 +11,21 @@ pub struct Config {
     pub supabase_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub supabase_anon_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chat_prompt_template: Option<String>,
+}
+
+pub const DEFAULT_CHAT_PROMPT_TEMPLATE: &str = "\
+I had this idea and want to explore it further with you:
+
+{{content}}
+
+Help me develop this idea. What are the key points to consider?";
+
+impl Config {
+    pub fn chat_prompt_template(&self) -> &str {
+        self.chat_prompt_template.as_deref().unwrap_or(DEFAULT_CHAT_PROMPT_TEMPLATE)
+    }
 }
 
 impl Default for Config {
@@ -21,6 +36,7 @@ impl Default for Config {
             storage_path: None,
             supabase_url: None,
             supabase_anon_key: None,
+            chat_prompt_template: None,
         }
     }
 }

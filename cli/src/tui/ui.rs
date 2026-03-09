@@ -11,6 +11,7 @@ use super::state::{App, Mode, MAX_SUGGESTIONS};
 pub fn draw(f: &mut Frame, app: &App) {
     match app.mode {
         Mode::Detail => draw_detail(f, app),
+        Mode::Chat => draw_with_chat(f, app),
         Mode::Add => draw_with_input(f, app, "Add (Enter to save, Esc to cancel): "),
         Mode::Search => draw_with_input(f, app, "Search: "),
         Mode::Command => draw_with_command(f, app),
@@ -85,7 +86,38 @@ fn draw_detail(f: &mut Frame, app: &App) {
             .wrap(Wrap { trim: false }),
         chunks[1],
     );
-    f.render_widget(Paragraph::new("Esc:back  s:cycle-status  d:delete"), chunks[2]);
+    f.render_widget(Paragraph::new("Esc:back  s:cycle-status  d:delete  c:chat  v:vim"), chunks[2]);
+}
+
+fn draw_with_chat(f: &mut Frame, app: &App) {
+    // Draw detail view underneath
+    draw_detail(f, app);
+
+    // Chat popup overlay
+    let popup_w = 30u16;
+    let popup_h = 7u16;
+    let popup_x = (f.area().width.saturating_sub(popup_w)) / 2;
+    let popup_y = (f.area().height.saturating_sub(popup_h)) / 2;
+    let popup_rect = Rect::new(popup_x, popup_y, popup_w, popup_h);
+
+    f.render_widget(Clear, popup_rect);
+
+    let items = vec![
+        ListItem::new(" 1  ChatGPT"),
+        ListItem::new(" 2  Claude"),
+        ListItem::new(" 3  Copy Only"),
+    ];
+    let mut state = ListState::default();
+    state.select(Some(app.chat_selected));
+
+    f.render_stateful_widget(
+        List::new(items)
+            .block(Block::default().borders(Borders::ALL).title(" Chat with... "))
+            .highlight_style(Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD))
+            .highlight_symbol("> "),
+        popup_rect,
+        &mut state,
+    );
 }
 
 fn draw_with_input(f: &mut Frame, app: &App, prompt: &str) {
@@ -222,7 +254,7 @@ fn draw_with_config(f: &mut Frame, app: &App) {
         .constraints([Constraint::Length(3), Constraint::Min(0)])
         .split(popup_rect);
 
-    let config_tabs = Tabs::new(vec!["General", "Storage", "Supabase"])
+    let config_tabs = Tabs::new(vec!["General", "Storage", "Supabase", "Chat"])
         .select(app.config_tab)
         .block(Block::default().borders(Borders::ALL).title(" Config "))
         .highlight_style(Style::default().fg(Color::Yellow));
@@ -299,7 +331,7 @@ fn draw_with_config(f: &mut Frame, app: &App) {
                 &mut cfg_state,
             );
         }
-    } else {
+    } else if app.config_tab == 2 {
         // Supabase tab
         let url_val = if app.config_editing.is_some() && app.config_selected == 0 {
             app.config_editing.as_ref().unwrap().as_str()
@@ -349,6 +381,21 @@ fn draw_with_config(f: &mut Frame, app: &App) {
                 .highlight_symbol("> "),
             popup_chunks[1],
             &mut cfg_state,
+        );
+    } else {
+        // Chat tab
+        let template: String = cfg.chat_prompt_template.as_deref()
+            .unwrap_or(flicker_core::config::DEFAULT_CHAT_PROMPT_TEMPLATE)
+            .lines()
+            .take(5)
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        f.render_widget(
+            Paragraph::new(format!(" {}\n\n (Enter to edit in {})", template, cfg.editor))
+                .block(Block::default().borders(Borders::ALL).title("(Enter:edit Esc:close Tab:switch)"))
+                .wrap(Wrap { trim: false }),
+            popup_chunks[1],
         );
     }
 }

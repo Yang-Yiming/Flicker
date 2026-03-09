@@ -20,4 +20,6 @@ READ these files when you need context. UPDATE them when you make changes.
 
 # Reminders
 
+- The TUI can invoke CLI commands, so unless explicitly requested, do not consider TUI updates when making changes.
+
 Write down important things / errors here to help future sessions.

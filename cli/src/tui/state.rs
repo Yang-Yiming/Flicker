@@ -11,6 +11,7 @@ pub enum Mode {
     Command,
     Bash,
     Config,
+    Chat,
 }
 
 pub struct App {
@@ -33,6 +34,7 @@ pub struct App {
     pub config_tab: usize,
     pub config_storage_focus: usize,
     pub sync_status: Option<String>,
+    pub chat_selected: usize,
 }
 
 impl App {
@@ -57,6 +59,7 @@ impl App {
             config_tab: 0,
             config_storage_focus: 0,
             sync_status: None,
+            chat_selected: 0,
         };
         app.refilter();
         app

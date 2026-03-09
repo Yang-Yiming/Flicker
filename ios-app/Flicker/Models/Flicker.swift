@@ -63,3 +63,13 @@ struct Flicker: Identifiable {
         return s
     }
 }
+
+extension Flicker {
+    static let defaultChatPromptTemplate = """
+    I had this idea and want to explore it further with you:
+
+    {{content}}
+
+    Help me develop this idea. What are the key points to consider?
+    """
+}

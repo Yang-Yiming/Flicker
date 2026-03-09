@@ -108,6 +108,10 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                     app.config_editing = None;
                     app.mode = Mode::Config;
                 }
+                KeyCode::Char('c') => {
+                    app.chat_selected = 0;
+                    app.mode = Mode::Chat;
+                }
                 KeyCode::Char('v') => {
                     if let Some(flicker) = app.selected_flicker() {
                         let path = storage::flickers_dir()
@@ -120,6 +124,23 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                 }
                 KeyCode::Char('d') => { app.delete_selected(); app.mode = Mode::List; }
                 KeyCode::Char('s') => app.cycle_status_selected(),
+                _ => {}
+            },
+            Mode::Chat => match key.code {
+                KeyCode::Esc => app.mode = Mode::Detail,
+                KeyCode::Up | KeyCode::Char('k') => {
+                    if app.chat_selected > 0 { app.chat_selected -= 1; }
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    if app.chat_selected < 2 { app.chat_selected += 1; }
+                }
+                KeyCode::Enter => {
+                    chat_and_open(&app, config);
+                    app.mode = Mode::Detail;
+                }
+                KeyCode::Char('1') => { app.chat_selected = 0; chat_and_open(&app, config); app.mode = Mode::Detail; }
+                KeyCode::Char('2') => { app.chat_selected = 1; chat_and_open(&app, config); app.mode = Mode::Detail; }
+                KeyCode::Char('3') => { app.chat_selected = 2; chat_and_open(&app, config); app.mode = Mode::Detail; }
                 _ => {}
             },
             Mode::Search => match key.code {
@@ -184,7 +205,7 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
             Mode::Config => match key.code {
                 KeyCode::Tab => {
                     if app.config_editing.is_none() {
-                        app.config_tab = (app.config_tab + 1) % 3;
+                        app.config_tab = (app.config_tab + 1) % 4;
                         app.config_selected = 0;
                     }
                 }
@@ -227,7 +248,30 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
                     }
                 }
                 KeyCode::Enter => {
-                    if app.config_tab == 2 {
+                    if app.config_tab == 3 {
+                        // Chat tab — edit template in editor
+                        let cfg = flicker_core::config::load();
+                        let template = cfg.chat_prompt_template().to_string();
+                        let tmp = std::env::temp_dir().join("flicker-chat-template.txt");
+                        std::fs::write(&tmp, &template).ok();
+                        open_in_vim(terminal, &tmp.to_string_lossy(), &config.editor)?;
+                        if let Ok(new_template) = std::fs::read_to_string(&tmp) {
+                            let trimmed = new_template.trim().to_string();
+                            if trimmed != flicker_core::config::DEFAULT_CHAT_PROMPT_TEMPLATE {
+                                let mut cfg = flicker_core::config::load();
+                                cfg.chat_prompt_template = Some(trimmed);
+                                if let Err(e) = flicker_core::config::save(&cfg) {
+                                    app.status_message = Some(format!("Save failed: {}", e));
+                                }
+                            } else {
+                                // Reset to default (remove from config)
+                                let mut cfg = flicker_core::config::load();
+                                cfg.chat_prompt_template = None;
+                                flicker_core::config::save(&cfg).ok();
+                            }
+                        }
+                        std::fs::remove_file(&tmp).ok();
+                    } else if app.config_tab == 2 {
                         // Supabase tab
                         if let Some(new_val) = app.config_editing.take() {
                             let mut cfg = flicker_core::config::load();
@@ -335,6 +379,33 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, commands: Vec<
         }
     }
     Ok(())
+}
+
+fn chat_and_open(app: &App, config: &flicker_core::Config) {
+    let Some(flicker) = app.selected_flicker() else { return };
+    let prompt = config.chat_prompt_template().replace("{{content}}", &flicker.body);
+
+    // Copy prompt to clipboard via pbcopy
+    let _ = std::process::Command::new("pbcopy")
+        .stdin(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut child| {
+            use std::io::Write;
+            if let Some(ref mut stdin) = child.stdin {
+                stdin.write_all(prompt.as_bytes())?;
+            }
+            child.wait()
+        });
+
+    // Open web URL for ChatGPT or Claude
+    let url = match app.chat_selected {
+        0 => Some("https://chatgpt.com/"),
+        1 => Some("https://claude.ai/new"),
+        _ => None,
+    };
+    if let Some(url) = url {
+        let _ = std::process::Command::new("open").arg(url).spawn();
+    }
 }
 
 fn dispatch_command(app: &mut App) {
